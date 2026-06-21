@@ -7,11 +7,12 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0E1116">
 <title>AVA</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&family=Inter:wght@300;400;600;700&family=Lora:wght@400;600;700&family=Space+Grotesk:wght@400;600;700&family=Nunito:wght@300;400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
   :root {
     --bg: #001a12; --surface: #002a20; --surface-2: #003828; --border: rgba(180,200,195,0.14);
+    --font-body: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     --text: #dfffea; --text-dim: #88c4a8;
     --amber: #00ffc6; --amber-dim: rgba(0,255,198,0.12);
     --teal: #00ffc6; --teal-dim: rgba(0,255,198,0.10);
@@ -38,9 +39,8 @@
   #movies-screen   { --accent: var(--sec-movies); }
   #games-screen    { --accent: var(--sec-games); }
   #finance-screen  { --accent: var(--sec-finance); }
-  #calendar-screen { --accent: var(--sec-calendar); }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  html, body { background: var(--bg); color: var(--text); font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; overscroll-behavior-y: none; }
+  html, body { background: var(--bg); color: var(--text); font-family: var(--font-body); overscroll-behavior-y: none; }
   body {
     background: radial-gradient(circle at top left, var(--bg), #000);
     background-image: radial-gradient(circle at 20% 0%, var(--accent-glow-faint) 0%, transparent 40%), radial-gradient(circle at 80% 100%, var(--accent-glow-faint) 0%, transparent 40%);
@@ -73,9 +73,9 @@
   .todo-del { color: var(--text-dim); font-size: 18px; padding: 4px 8px; cursor: pointer; }
   #todo-input-row { display: flex; gap: 8px; margin-top: 14px; }
   #todo-input-row input { flex: 1; }
-  input, textarea { background: var(--surface-2); border: 1px solid var(--border); color: var(--text); padding: 13px 14px; border-radius: 10px; font-family: 'Poppins', inherit; font-size: 16px; width: 100%; }
+  input, textarea { background: var(--surface-2); border: 1px solid var(--border); color: var(--text); padding: 13px 14px; border-radius: 10px; font-family: var(--font-body); font-size: 16px; width: 100%; }
   input:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
-  button.primary { background: var(--accent); color: #001912; border: none; padding: 13px 18px; border-radius: 10px; font-weight: 600; font-size: 15px; cursor: pointer; white-space: nowrap; font-family: 'Poppins', sans-serif; transition: 0.3s; }
+  button.primary { background: var(--accent); color: #001912; border: none; padding: 13px 18px; border-radius: 10px; font-weight: 600; font-size: 15px; cursor: pointer; white-space: nowrap; font-family: var(--font-body); transition: 0.3s; }
   button.primary:active, button.primary:hover { filter: brightness(0.92); box-shadow: 0 0 16px var(--accent-glow); }
   button.primary:disabled { opacity: 0.5; }
   #chat-screen.active { display: flex; flex-direction: column; height: calc(100vh - 110px); padding: 0; }
@@ -202,6 +202,13 @@
     background: radial-gradient(circle, rgba(0,255,204,0.6) 0%, rgba(0,255,204,0.05) 80%);
     filter: blur(8px); opacity: 0.8; animation: fadeTrail 0.8s ease-out forwards; z-index: 9998;
   }
+
+  /* ── Glow toggle: strips the orb's signature glow + cursor trail + pulse
+     when the person turns off the glowy look in Settings. ── */
+  body.glow-off #chat-orb { box-shadow: inset 0 0 10px rgba(255,255,255,0.15); animation: floaty 3s ease-in-out infinite; }
+  body.glow-off #chat-orb:hover { box-shadow: inset 0 0 12px rgba(255,255,255,0.2); }
+  body.glow-off .trail { display: none; }
+  body.glow-off .pulse-dot { box-shadow: none; animation: none; opacity: 0.85; }
   @keyframes fadeTrail { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(2); opacity: 0; } }
 
   /* ── Section fade-in ── */
@@ -222,7 +229,7 @@
   /* ── Tooltips ── */
   .tooltip {
     position: absolute; backdrop-filter: blur(10px); background: rgba(10,15,20,0.75);
-    font-family: 'Poppins', sans-serif; font-weight: 300; padding: 10px 14px;
+    font-family: var(--font-body); font-weight: 300; padding: 10px 14px;
     border-radius: 12px; pointer-events: none; z-index: 1000; font-size: 0.78rem;
     letter-spacing: 0.3px; display: none;
   }
@@ -349,6 +356,29 @@
   </div>
   <div class="section-link">To-dos</div>
   <div class="card"><div id="home-todos"></div></div>
+
+  <div class="section-link">Calendar</div>
+  <div class="stat-strip" id="cal-stats"></div>
+  <div class="card">
+    <div id="month-nav-cal" class="month-nav">
+      <div class="month-btn" id="cal-month-prev">‹</div>
+      <div class="month-label" id="cal-month-label">—</div>
+      <div class="month-btn" id="cal-month-next">›</div>
+    </div>
+    <div id="event-calendar-grid"></div>
+  </div>
+  <div class="card">
+    <div class="stat-label">Add event</div>
+    <div class="period-form">
+      <input type="text" id="event-title-input" placeholder="Event title">
+      <div class="field-row">
+        <div class="field-group"><label>Date</label><input type="date" id="event-date-input"></div>
+        <div class="field-group"><label>Time (optional)</label><input type="time" id="event-time-input"></div>
+      </div>
+      <button class="primary" id="event-add-btn">Add event</button>
+    </div>
+  </div>
+  <div id="day-events-list"></div>
   <div class="card">
     <div class="nav-toggle-row">
       <div>
@@ -531,12 +561,17 @@
 <!-- BOOKS -->
 <div class="screen" id="books-screen">
   <div class="page-header"><div class="page-eyebrow">Reading</div><div class="page-title">Books</div></div>
+
+  <div class="card" style="padding:12px;">
+    <div id="book-shelf-pills" style="display:flex; gap:8px; overflow-x:auto; padding-bottom:2px;"></div>
+  </div>
+
   <div class="card">
     <div class="field-row">
       <div class="field-group" style="flex:2;"><label>Title</label><input type="text" id="book-title-input" placeholder="Book title"></div>
       <div class="field-group" style="flex:1;"><label>Author</label><input type="text" id="book-author-input" placeholder="Author"></div>
     </div>
-    <button class="primary" id="book-add" style="width:100%; margin-top:10px;">Add to list</button>
+    <button class="primary" id="book-add" style="width:100%; margin-top:10px;">Add to shelf</button>
   </div>
   <div class="provider-select" id="book-status-filter">
     <div class="provider-pill active" data-status="want">Want to read</div>
@@ -546,31 +581,32 @@
   <div id="books-list"></div>
 </div>
 
-<!-- CALENDAR -->
-<div class="screen" id="calendar-screen">
-  <div class="page-header"><div class="page-eyebrow">Schedule</div><div class="page-title">Calendar</div></div>
-  <div class="stat-strip" id="cal-stats"></div>
-  <div class="card">
-    <div id="month-nav-cal" class="month-nav">
-      <div class="month-btn" id="cal-month-prev">‹</div>
-      <div class="month-label" id="cal-month-label">—</div>
-      <div class="month-btn" id="cal-month-next">›</div>
+<!-- NEW SHELF MODAL (reused by Books/Movies/Games via data-kind) -->
+<div id="new-shelf-modal" class="group-overlay" style="justify-content:center; align-items:center; padding:24px;">
+  <div class="card" style="width:100%; max-width:340px; margin:0;">
+    <div class="stat-label" style="margin-bottom:10px;">New shelf</div>
+    <input type="text" id="new-shelf-name" placeholder="Shelf name (e.g. Fantasy Books)" style="margin-bottom:10px;">
+    <div class="provider-select" style="margin-bottom:14px;">
+      <div class="provider-pill active" data-visibility="private">🔒 Private</div>
+      <div class="provider-pill" data-visibility="shared">👥 Shared</div>
     </div>
-    <div id="event-calendar-grid"></div>
-  </div>
-  <div class="card">
-    <div class="stat-label">Add event</div>
-    <div class="period-form">
-      <input type="text" id="event-title-input" placeholder="Event title">
-      <div class="field-row">
-        <div class="field-group"><label>Date</label><input type="date" id="event-date-input"></div>
-        <div class="field-group"><label>Time (optional)</label><input type="time" id="event-time-input"></div>
-      </div>
-      <button class="primary" id="event-add-btn">Add event</button>
+    <div id="new-shelf-shared-hint" style="display:none; font-size:11px; color:var(--text-dim); margin:-6px 0 14px; line-height:1.5;"></div>
+    <div style="display:flex; gap:8px;">
+      <button class="primary" id="new-shelf-cancel" style="flex:1; background:var(--surface-2); color:var(--text); border:1px solid var(--border);">Cancel</button>
+      <button class="primary" id="new-shelf-create" style="flex:1;">Create</button>
     </div>
   </div>
-  <div id="day-events-list"></div>
 </div>
+
+<!-- SHELF PICKER MODAL (choosing which shelves an item is on) -->
+<div id="shelf-picker-modal" class="group-overlay" style="justify-content:center; align-items:center; padding:24px;">
+  <div class="card" style="width:100%; max-width:340px; margin:0;">
+    <div class="stat-label" style="margin-bottom:10px;">On shelves</div>
+    <div id="shelf-picker-list" style="margin-bottom:14px;"></div>
+    <button class="primary" id="shelf-picker-done" style="width:100%;">Done</button>
+  </div>
+</div>
+
 
 <!-- MOVIES & TV -->
 <div class="screen" id="movies-screen">
@@ -693,12 +729,24 @@
   </div>
 
   <div class="card">
+    <div class="stat-label" style="margin-bottom:10px;">Font</div>
+    <div id="font-picker-list"></div>
+  </div>
+
+  <div class="card">
     <div class="nav-toggle-row">
       <div>
         <div style="font-size:13px; font-weight:600;">Floating AVA orb</div>
         <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">The draggable orb that opens chat from any page. Turn off to use the Chat tab instead.</div>
       </div>
       <div class="toggle-track" id="orb-toggle"><div class="toggle-knob"></div></div>
+    </div>
+    <div class="nav-toggle-row" style="margin-top:10px; border-top:1px solid var(--border); padding-top:10px;">
+      <div>
+        <div style="font-size:13px; font-weight:600;">Glowy look</div>
+        <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">The neon glow on buttons, highlights, and the orb. Turn off for a flatter, calmer look.</div>
+      </div>
+      <div class="toggle-track" id="glow-toggle"><div class="toggle-knob"></div></div>
     </div>
   </div>
 
@@ -865,7 +913,6 @@ const MEDIA_TABS = [
 
 const HEALTH_TABS = [
   { id: 'cycle',    label: 'CYCLE',    svg: '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/><circle cx="12" cy="14" r="2.5"/>' },
-  { id: 'calendar', label: 'CALENDAR', svg: '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>' },
 ];
 
 const FINANCE_TAB = { id: 'finance', label: 'FINANCE', svg: '<circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5c0-1.5 1-2.5 2.5-2.5s2.5 1 2.5 2.2c0 2.8-5 1.6-5 4.3 0 1.3 1.1 2.3 2.5 2.3s2.5-1 2.5-2.3"/>' };
@@ -1012,13 +1059,21 @@ const SECTION_LIST = [
   { key: 'movies',   label: 'Movies & TV' },
   { key: 'games',    label: 'Games' },
   { key: 'finance',  label: 'Finance' },
-  { key: 'calendar', label: 'Calendar' },
 ];
-// Tabs that can be hidden per-user. Home and Chat are always visible (core nav).
-const HIDEABLE_TAB_IDS = ['todos', 'notes', 'books', 'movies', 'games', 'cycle', 'calendar', 'finance'];
+// Tabs that can be hidden per-user. Home, Chat, and Calendar (now part of
+// Home) are always visible — Calendar can't be hidden independently anymore.
+const HIDEABLE_TAB_IDS = ['todos', 'notes', 'books', 'movies', 'games', 'cycle', 'finance'];
+
+const FONT_OPTIONS = {
+  poppins: { label: 'Poppins',      stack: "'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" },
+  inter:   { label: 'Inter',        stack: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" },
+  lora:    { label: 'Lora (serif)', stack: "'Lora', Georgia, serif" },
+  grotesk: { label: 'Space Grotesk',stack: "'Space Grotesk', sans-serif" },
+  nunito:  { label: 'Nunito',       stack: "'Nunito', sans-serif" },
+};
 
 function defaultAppearance() {
-  return { preset: 'teal', overrides: {}, hiddenTabs: [], orbEnabled: true };
+  return { preset: 'teal', overrides: {}, hiddenTabs: [], orbEnabled: true, font: 'poppins', glowEnabled: true };
 }
 
 // Convert a hex color like #ff4081 to an rgba(...) string for the "dim" variant.
@@ -1098,6 +1153,19 @@ function applyAppearance() {
 
   const orb = document.getElementById('chat-orb');
   if (orb) orb.style.display = appearance.orbEnabled === false ? 'none' : '';
+
+  const fontKey = FONT_OPTIONS[appearance.font] ? appearance.font : 'poppins';
+  root.setProperty('--font-body', FONT_OPTIONS[fontKey].stack);
+
+  // Glow toggle: rather than duplicate every box-shadow/text-shadow rule
+  // that uses --accent-glow, we zero the glow variables themselves when
+  // off. Every glow effect in the app is built from these two variables,
+  // so this single change cleanly turns all of them off at once.
+  document.body.classList.toggle('glow-off', appearance.glowEnabled === false);
+  if (appearance.glowEnabled === false) {
+    root.setProperty('--accent-glow', 'rgba(0,0,0,0)');
+    root.setProperty('--accent-glow-faint', 'rgba(0,0,0,0)');
+  }
 }
 
 function persistAppearance() { saveJSON(StorageKeys.appearance, appearance); }
@@ -1109,11 +1177,14 @@ function persistAppearance() { saveJSON(StorageKeys.appearance, appearance); }
 function renderSettingsScreen() {
   if (!appearance) return;
   renderThemePresetGrid();
+  renderFontPicker();
   renderSectionColorList();
   renderTabVisibilityList();
   renderHouseholdCard();
   const orbToggle = $('orb-toggle');
   if (orbToggle) orbToggle.classList.toggle('on', appearance.orbEnabled !== false);
+  const glowToggle = $('glow-toggle');
+  if (glowToggle) glowToggle.classList.toggle('on', appearance.glowEnabled !== false);
   const emailEl = $('settings-account-email');
   if (emailEl && currentUser) emailEl.textContent = currentUser.email || '';
 }
@@ -1124,6 +1195,34 @@ $('orb-toggle').onclick = () => {
   applyAppearance();
   renderSettingsScreen();
 };
+
+$('glow-toggle').onclick = () => {
+  appearance.glowEnabled = appearance.glowEnabled === false ? true : false;
+  persistAppearance();
+  applyAppearance();
+  renderSettingsScreen();
+};
+
+function renderFontPicker() {
+  const list = $('font-picker-list');
+  if (!list) return;
+  list.innerHTML = '';
+  const currentFont = FONT_OPTIONS[appearance.font] ? appearance.font : 'poppins';
+  Object.entries(FONT_OPTIONS).forEach(([key, font]) => {
+    const row = document.createElement('div');
+    const isActive = key === currentFont;
+    row.style.cssText = `display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-radius:8px; border:1.5px solid ${isActive ? 'var(--accent)' : 'var(--border)'}; margin-bottom:8px; cursor:pointer; background:var(--surface-2);`;
+    row.innerHTML = `<span style="font-family:${font.stack}; font-size:15px; color:${isActive ? 'var(--text)' : 'var(--text-dim)'};">${font.label}</span>${isActive ? '<span style="color:var(--accent); font-size:13px;">✓</span>' : ''}`;
+    row.onclick = () => {
+      appearance.font = key;
+      persistAppearance();
+      applyAppearance();
+      renderFontPicker();
+    };
+    list.appendChild(row);
+  });
+  if (list.lastChild) list.lastChild.style.marginBottom = '0';
+}
 
 function renderThemePresetGrid() {
   const grid = $('theme-preset-grid');
@@ -2344,13 +2443,24 @@ function renderBooks() {
     const statusBtns = Object.keys(BOOK_STATUS_LABELS).map(s =>
       `<div class="book-status-btn ${s === b.status ? 'active' : ''}" data-status="${s}">${BOOK_STATUS_LABELS[s]}</div>`
     ).join('');
+    const goodreadsUrl = `https://www.goodreads.com/search?q=${encodeURIComponent(b.title + (b.author ? ' ' + b.author : ''))}`;
     card.innerHTML = `
-      <div class="book-title">${escapeHtml(b.title)}</div>
+      <div class="book-title"><a href="${goodreadsUrl}" target="_blank" rel="noopener" style="color:inherit; text-decoration:none; border-bottom:1px dotted var(--text-dim);">${escapeHtml(b.title)}</a></div>
       ${b.author ? `<div class="book-author">${escapeHtml(b.author)}</div>` : ''}
       <div class="book-status-row">${statusBtns}</div>
-      <div class="book-notes"><textarea placeholder="Notes, thoughts, quotes...">${escapeHtml(b.notes || '')}</textarea></div>
-      <div class="book-del">Remove book</div>
     `;
+    if (b.status === 'finished') {
+      const ratingWrap = starRow(b.rating, (r) => { b.rating = r; persistBooks(); renderBooks(); });
+      card.appendChild(ratingWrap);
+    }
+    const notesDiv = document.createElement('div');
+    notesDiv.className = 'book-notes';
+    notesDiv.innerHTML = `<textarea placeholder="Notes, thoughts, quotes...">${escapeHtml(b.notes || '')}</textarea>`;
+    card.appendChild(notesDiv);
+    const delDiv = document.createElement('div');
+    delDiv.className = 'book-del';
+    delDiv.textContent = 'Remove book';
+    card.appendChild(delDiv);
     card.querySelectorAll('.book-status-btn').forEach(btn => {
       btn.onclick = () => {
         b.status = btn.dataset.status;
@@ -2524,8 +2634,9 @@ function renderMovies() {
   filtered.forEach(m => {
     const card = document.createElement('div');
     card.className = 'book-card';
+    const imdbUrl = `https://www.imdb.com/find/?q=${encodeURIComponent(m.title)}`;
     card.innerHTML = `
-      <div class="book-title">${escapeHtml(m.title)}</div>
+      <div class="book-title"><a href="${imdbUrl}" target="_blank" rel="noopener" style="color:inherit; text-decoration:none; border-bottom:1px dotted var(--text-dim);">${escapeHtml(m.title)}</a></div>
       <div class="book-author">${m.type === 'tv' ? 'TV Show' : 'Movie'}</div>
       <div class="book-status-row">
         <div class="book-status-btn ${m.status === 'watchlist' ? 'active' : ''}" data-status="watchlist">Watchlist</div>
@@ -2631,15 +2742,17 @@ function renderGames() {
   filtered.forEach(g => {
     const card = document.createElement('div');
     card.className = 'book-card';
+    const steamUrl = `https://store.steampowered.com/search/?term=${encodeURIComponent(g.title)}`;
+    const linkStyle = 'color:inherit; text-decoration:none; border-bottom:1px dotted var(--text-dim);';
     let priceLabel = '';
     if (g.price != null) {
       const sourceLabel = g.priceSource === 'live' ? ' (live)' : g.priceSource === 'manual' ? ' (manual)' : '';
-      priceLabel = `<div class="book-author">$${g.price.toFixed(2)}${sourceLabel}</div>`;
+      priceLabel = `<div class="book-author"><a href="${steamUrl}" target="_blank" rel="noopener" style="${linkStyle}">$${g.price.toFixed(2)}${sourceLabel}</a></div>`;
     } else if (g.priceSource === 'unavailable') {
       priceLabel = `<div class="book-author">Price not found</div>`;
     }
     card.innerHTML = `
-      <div class="book-title">${escapeHtml(g.title)}</div>
+      <div class="book-title"><a href="${steamUrl}" target="_blank" rel="noopener" style="${linkStyle}">${escapeHtml(g.title)}</a></div>
       <div class="book-author">${PLATFORM_LABELS[g.platform]}</div>
       ${priceLabel}
       <div class="book-status-row">

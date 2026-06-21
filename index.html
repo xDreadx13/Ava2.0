@@ -23,8 +23,8 @@
     --accent: #00ffc6; --accent-glow: rgba(0,255,198,0.25); --accent-glow-faint: rgba(0,255,198,0.03);
     --accent-dark: #00bfa5; --accent-darker: #004d40;
     /* Per-section accents — default to the global accent, overridable per user. */
-    --sec-cycle: #ff4081; --sec-cycle-dim: rgba(255,64,129,0.15);
-    --sec-cycle-alt: #7b61ff; --sec-cycle-alt-dim: rgba(123,97,255,0.15);
+    --sec-cycle: #ff4081; --sec-cycle-dim: rgba(255,64,129,0.15); --sec-cycle-fill: rgba(255,64,129,0.32);
+    --sec-cycle-alt: #7b61ff; --sec-cycle-alt-dim: rgba(123,97,255,0.15); --sec-cycle-alt-fill: rgba(123,97,255,0.32);
     --sec-todos: var(--accent); --sec-notes: var(--accent); --sec-books: var(--accent);
     --sec-movies: var(--accent); --sec-games: var(--accent); --sec-finance: var(--accent);
     --sec-calendar: var(--accent); --sec-chat: var(--accent);
@@ -100,9 +100,9 @@
   .cal-day { aspect-ratio: 1; border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; position: relative; background: var(--surface-2); }
   .cal-day .date-num { font-weight: 600; }
   .cal-day .fert-pct { font-size: 8px; color: var(--text-dim); font-family: 'SF Mono', monospace; margin-top: 1px; }
-  .cal-day.period { background: var(--sec-cycle-dim); border-color: var(--sec-cycle); }
+  .cal-day.period { background: var(--sec-cycle-fill); border-color: var(--sec-cycle); }
   .cal-day.predicted-period { border-color: var(--sec-cycle); border-style: dashed; }
-  .cal-day.ovulation { border-color: var(--sec-cycle-alt); box-shadow: 0 0 0 1px var(--sec-cycle-alt); }
+  .cal-day.day-selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
   .cal-day.today { outline: 2px solid var(--teal); outline-offset: 1px; }
   .cal-day.empty { visibility: hidden; }
   /* Events calendar (separate from Cycle's calendar) renders much more
@@ -217,10 +217,10 @@
   .screen.active { animation: fadeIn 0.3s ease-in-out; }
 
   /* ── Calendar day highlights ── */
-  .period-day { background: var(--sec-cycle-dim) !important; border: 1px solid var(--sec-cycle) !important; }
-  .fertile-day { background: var(--sec-cycle-alt-dim) !important; border: 1px solid var(--sec-cycle-alt) !important; opacity: 0.85; }
-  .ovulation-day { background: var(--sec-cycle-alt-dim) !important; border: 1px solid var(--sec-cycle-alt) !important; box-shadow: 0 0 0 1px var(--sec-cycle-alt); }
-  .predicted-period-day { background: var(--sec-cycle-dim); border: 1px solid var(--sec-cycle) !important; opacity: 0.6; animation: softPulse 3s ease-in-out infinite; }
+  .period-day { background: var(--sec-cycle-fill) !important; border: 1px solid var(--sec-cycle) !important; }
+  .fertile-day { background: var(--sec-cycle-alt-fill) !important; border: 1px solid var(--sec-cycle-alt) !important; opacity: 0.85; }
+  .ovulation-day { background: var(--sec-cycle-alt-fill) !important; border: 1px solid var(--sec-cycle-alt) !important; box-shadow: 0 0 0 1px var(--sec-cycle-alt); }
+  .predicted-period-day { background: var(--sec-cycle-fill); border: 1px solid var(--sec-cycle) !important; opacity: 0.6; animation: softPulse 3s ease-in-out infinite; }
   @keyframes softPulse {
     0% { box-shadow: 0 0 6px rgba(255,120,140,0.25); }
     50% { box-shadow: 0 0 14px rgba(255,120,140,0.45); }
@@ -474,7 +474,7 @@
     </div>
     <div id="calendar-grid"></div>
     <div class="legend">
-      <div class="legend-item"><span class="legend-swatch" style="background:var(--sec-cycle-dim); border:1px solid var(--sec-cycle);"></span>Logged period</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--sec-cycle-fill); border:1px solid var(--sec-cycle);"></span>Logged period</div>
       <div class="legend-item"><span class="legend-swatch" style="background:var(--surface-2); border:1px dashed var(--sec-cycle);"></span>Predicted</div>
       <div class="legend-item"><span class="legend-swatch" style="background:var(--surface-2); border:1px solid var(--sec-cycle-alt);"></span>Ovulation</div>
       <div class="legend-item"><span class="legend-swatch" style="background:var(--surface-2); outline:2px solid var(--teal);"></span>Today</div>
@@ -1074,7 +1074,11 @@ const FONT_OPTIONS = {
 };
 
 function defaultAppearance() {
-  return { preset: 'teal', overrides: {}, hiddenTabs: [], orbEnabled: true, font: 'poppins', glowEnabled: true };
+  // Cycle tracking is off by default for new accounts — most people
+  // sharing a household won't want it (e.g. a male partner). Existing
+  // accounts are unaffected since their saved hiddenTabs always wins
+  // over this default (see the spread-merge pattern where this is used).
+  return { preset: 'teal', overrides: {}, hiddenTabs: ['cycle'], orbEnabled: true, font: 'poppins', glowEnabled: true };
 }
 
 // Convert a hex color like #ff4081 to an rgba(...) string for the "dim" variant.
@@ -1150,6 +1154,10 @@ function applyAppearance() {
     const color = appearance.overrides[key] || (key === 'cycle' ? preset.cycle : globalAccent);
     root.setProperty(`--sec-${key}`, color);
     root.setProperty(`--sec-${key}-dim`, hexToRgba(color, 0.15));
+    // Calendar day cells need a stronger fill than the general -dim variant
+    // to read clearly against the (now much darker) themed background —
+    // 15% opacity nearly disappears into a near-black surface.
+    root.setProperty(`--sec-${key}-fill`, hexToRgba(color, 0.32));
   });
 
   // Ovulation/fertile days get their own color, distinct from the period
@@ -1160,6 +1168,7 @@ function applyAppearance() {
   const ovulationColor = hslToHex((cycleHue + 130) % 360, 75, 60);
   root.setProperty('--sec-cycle-alt', ovulationColor);
   root.setProperty('--sec-cycle-alt-dim', hexToRgba(ovulationColor, 0.15));
+  root.setProperty('--sec-cycle-alt-fill', hexToRgba(ovulationColor, 0.32));
 
   const orb = document.getElementById('chat-orb');
   if (orb) orb.style.display = appearance.orbEnabled === false ? 'none' : '';
@@ -1968,7 +1977,7 @@ function renderAveragesBanner(data) {
 }
 
 function renderHomeCycleStrip(data) {
-  if (!data.hasData) { $('home-cycle-strip').style.display = 'none'; return; }
+  if (isTabHidden('cycle') || !data.hasData) { $('home-cycle-strip').style.display = 'none'; return; }
   $('home-cycle-strip').style.display = 'flex';
   $('home-next-period').textContent = data.nextPeriodLabel || '—';
   $('home-fertility').textContent = data.todayFertility != null ? `${data.todayFertility}%` : '—';
@@ -2527,7 +2536,7 @@ function renderCalendarScreen() {
     const cell = document.createElement('div');
     let cls = 'cal-day';
     if (iso === todayIso) cls += ' today';
-    if (iso === calSelectedDate) cls += ' ovulation';
+    if (iso === calSelectedDate) cls += ' day-selected';
     cell.className = cls;
     cell.innerHTML = `<div class="date-num">${day}</div>${eventDates.has(iso) ? `<div class="fert-pct" style="color:var(--amber);">•</div>` : ''}`;
     cell.onclick = () => { calSelectedDate = iso; renderCalendarScreen(); };

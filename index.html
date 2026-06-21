@@ -24,6 +24,7 @@
     --accent-dark: #00bfa5; --accent-darker: #004d40;
     /* Per-section accents — default to the global accent, overridable per user. */
     --sec-cycle: #ff4081; --sec-cycle-dim: rgba(255,64,129,0.15);
+    --sec-cycle-alt: #7b61ff; --sec-cycle-alt-dim: rgba(123,97,255,0.15);
     --sec-todos: var(--accent); --sec-notes: var(--accent); --sec-books: var(--accent);
     --sec-movies: var(--accent); --sec-games: var(--accent); --sec-finance: var(--accent);
     --sec-calendar: var(--accent); --sec-chat: var(--accent);
@@ -101,7 +102,7 @@
   .cal-day .fert-pct { font-size: 8px; color: var(--text-dim); font-family: 'SF Mono', monospace; margin-top: 1px; }
   .cal-day.period { background: var(--sec-cycle-dim); border-color: var(--sec-cycle); }
   .cal-day.predicted-period { border-color: var(--sec-cycle); border-style: dashed; }
-  .cal-day.ovulation { border-color: var(--sec-cycle); box-shadow: 0 0 0 1px var(--sec-cycle); }
+  .cal-day.ovulation { border-color: var(--sec-cycle-alt); box-shadow: 0 0 0 1px var(--sec-cycle-alt); }
   .cal-day.today { outline: 2px solid var(--teal); outline-offset: 1px; }
   .cal-day.empty { visibility: hidden; }
   /* Events calendar (separate from Cycle's calendar) renders much more
@@ -217,8 +218,8 @@
 
   /* ── Calendar day highlights ── */
   .period-day { background: var(--sec-cycle-dim) !important; border: 1px solid var(--sec-cycle) !important; }
-  .fertile-day { background: var(--sec-cycle-dim) !important; border: 1px solid var(--sec-cycle) !important; opacity: 0.7; }
-  .ovulation-day { background: var(--sec-cycle-dim) !important; border: 1px solid var(--sec-cycle) !important; box-shadow: 0 0 0 1px var(--sec-cycle); }
+  .fertile-day { background: var(--sec-cycle-alt-dim) !important; border: 1px solid var(--sec-cycle-alt) !important; opacity: 0.85; }
+  .ovulation-day { background: var(--sec-cycle-alt-dim) !important; border: 1px solid var(--sec-cycle-alt) !important; box-shadow: 0 0 0 1px var(--sec-cycle-alt); }
   .predicted-period-day { background: var(--sec-cycle-dim); border: 1px solid var(--sec-cycle) !important; opacity: 0.6; animation: softPulse 3s ease-in-out infinite; }
   @keyframes softPulse {
     0% { box-shadow: 0 0 6px rgba(255,120,140,0.25); }
@@ -475,7 +476,7 @@
     <div class="legend">
       <div class="legend-item"><span class="legend-swatch" style="background:var(--sec-cycle-dim); border:1px solid var(--sec-cycle);"></span>Logged period</div>
       <div class="legend-item"><span class="legend-swatch" style="background:var(--surface-2); border:1px dashed var(--sec-cycle);"></span>Predicted</div>
-      <div class="legend-item"><span class="legend-swatch" style="background:var(--surface-2); border:1px solid var(--sec-cycle);"></span>Ovulation</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--surface-2); border:1px solid var(--sec-cycle-alt);"></span>Ovulation</div>
       <div class="legend-item"><span class="legend-swatch" style="background:var(--surface-2); outline:2px solid var(--teal);"></span>Today</div>
     </div>
   </div>
@@ -1150,6 +1151,15 @@ function applyAppearance() {
     root.setProperty(`--sec-${key}`, color);
     root.setProperty(`--sec-${key}-dim`, hexToRgba(color, 0.15));
   });
+
+  // Ovulation/fertile days get their own color, distinct from the period
+  // color above — hue-shifted so they're always visually distinguishable
+  // no matter which cycle color the person picks.
+  const cycleColor = appearance.overrides.cycle || preset.cycle;
+  const cycleHue = hexToHue(cycleColor);
+  const ovulationColor = hslToHex((cycleHue + 130) % 360, 75, 60);
+  root.setProperty('--sec-cycle-alt', ovulationColor);
+  root.setProperty('--sec-cycle-alt-dim', hexToRgba(ovulationColor, 0.15));
 
   const orb = document.getElementById('chat-orb');
   if (orb) orb.style.display = appearance.orbEnabled === false ? 'none' : '';

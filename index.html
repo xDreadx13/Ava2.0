@@ -1,0 +1,2279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0E1116">
+<title>AVA</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #001a12; --surface: #002a20; --surface-2: #003828; --border: rgba(0,255,198,0.12);
+    --text: #dfffea; --text-dim: #88c4a8;
+    --amber: #00ffc6; --amber-dim: rgba(0,255,198,0.12);
+    --teal: #00ffc6; --teal-dim: rgba(0,255,198,0.10);
+    --rose: #ff4081; --rose-dim: rgba(255,64,129,0.15);
+    --danger: #ff4d6a; --radius: 14px;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --accent: #00ffc6; --accent-glow: rgba(0,255,198,0.25);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { background: var(--bg); color: var(--text); font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; overscroll-behavior-y: none; }
+  body {
+    background: radial-gradient(circle at top left, #001a12, #000);
+    background-image: radial-gradient(circle at 20% 0%, rgba(0,255,198,0.06) 0%, transparent 40%), radial-gradient(circle at 80% 100%, rgba(0,200,160,0.05) 0%, transparent 40%);
+    min-height: 100vh; padding-bottom: calc(70px + var(--safe-bottom));
+  }
+  .mono { font-family: 'SF Mono', 'Courier New', monospace; }
+  #topbar { display: flex; align-items: center; justify-content: space-between; padding: calc(12px + var(--safe-top)) 18px 10px; font-family: 'SF Mono', monospace; font-size: 11px; color: var(--text-dim); letter-spacing: 0.04em; }
+  .pulse-wrap { display: flex; align-items: center; gap: 7px; }
+  .pulse-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent), 0 0 20px var(--accent-glow); animation: pulse 2.4s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }
+  .page-header { padding: 4px 18px 18px; }
+  .page-eyebrow { font-family: 'SF Mono', monospace; font-size: 11px; color: var(--text-dim); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 4px; }
+  .page-title { font-size: 26px; font-weight: 700; }
+  .screen { display: none; padding: 0 16px; }
+  .screen.active { display: block; }
+  .card { background: rgba(0,30,24,0.6); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; box-shadow: inset 0 0 10px rgba(0,255,198,0.03); }
+  .stat-strip { display: flex; gap: 10px; margin-bottom: 14px; }
+  .stat-box { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+  .stat-label { font-family: 'SF Mono', monospace; font-size: 9px; color: var(--text-dim); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
+  .stat-value { font-size: 19px; font-weight: 700; }
+  .stat-value.rose { color: var(--rose); }
+  .stat-value.teal { color: var(--teal); }
+  .section-link { font-size: 13px; color: var(--text-dim); margin: 18px 2px 8px; }
+  .todo-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 15px; }
+  .todo-item:last-child { border-bottom: none; }
+  .todo-item.done .todo-text { text-decoration: line-through; color: var(--text-dim); }
+  .todo-check { width: 24px; height: 24px; border-radius: 7px; border: 1.5px solid var(--text-dim); flex-shrink: 0; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .todo-item.done .todo-check { background: var(--teal); border-color: var(--teal); color: var(--bg); }
+  .todo-text { flex: 1; }
+  .todo-del { color: var(--text-dim); font-size: 18px; padding: 4px 8px; cursor: pointer; }
+  #todo-input-row { display: flex; gap: 8px; margin-top: 14px; }
+  #todo-input-row input { flex: 1; }
+  input, textarea { background: var(--surface-2); border: 1px solid var(--border); color: var(--text); padding: 13px 14px; border-radius: 10px; font-family: 'Poppins', inherit; font-size: 16px; width: 100%; }
+  input:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+  button.primary { background: var(--accent); color: #001912; border: none; padding: 13px 18px; border-radius: 10px; font-weight: 600; font-size: 15px; cursor: pointer; white-space: nowrap; font-family: 'Poppins', sans-serif; transition: 0.3s; }
+  button.primary:active, button.primary:hover { filter: brightness(0.92); box-shadow: 0 0 16px var(--accent-glow); }
+  button.primary:disabled { opacity: 0.5; }
+  #chat-screen.active { display: flex; flex-direction: column; height: calc(100vh - 110px); padding: 0; }
+  #chat-log { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 0 16px 16px; }
+  .msg { max-width: 80%; padding: 11px 14px; border-radius: 14px; font-size: 15px; line-height: 1.45; white-space: pre-wrap; }
+  .msg.user { align-self: flex-end; background: rgba(0,255,198,0.10); border: 1px solid var(--teal); border-bottom-right-radius: 4px; }
+  .msg.assistant { align-self: flex-start; background: rgba(0,30,24,0.6); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+  .msg.error { align-self: flex-start; background: var(--rose-dim); border: 1px solid var(--rose); color: #F0C4D0; font-family: 'SF Mono', monospace; font-size: 12px; }
+  #chat-input-row { display: flex; gap: 8px; padding: 12px 16px calc(12px + var(--safe-bottom)); border-top: 1px solid var(--border); }
+  #chat-input-row input { flex: 1; }
+  .typing-dots { display: inline-flex; gap: 3px; padding: 2px; }
+  .typing-dots span { width: 5px; height: 5px; border-radius: 50%; background: var(--text-dim); animation: pulse 1s infinite; }
+  .typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.3s; }
+  .empty-state { color: var(--text-dim); font-size: 13px; line-height: 1.6; padding: 8px 2px; }
+  #month-nav, .month-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  #month-nav .month-label, .month-nav .month-label { font-weight: 700; font-size: 15px; }
+  .month-btn { width: 32px; height: 32px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; }
+  #calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+  .cal-day-label { font-size: 10px; color: var(--text-dim); text-align: center; font-family: 'SF Mono', monospace; padding-bottom: 4px; }
+  .cal-day { aspect-ratio: 1; border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; position: relative; background: var(--surface-2); }
+  .cal-day .date-num { font-weight: 600; }
+  .cal-day .fert-pct { font-size: 8px; color: var(--text-dim); font-family: 'SF Mono', monospace; margin-top: 1px; }
+  .cal-day.period { background: var(--rose-dim); border-color: var(--rose); }
+  .cal-day.predicted-period { border-color: var(--rose); border-style: dashed; }
+  .cal-day.ovulation { border-color: var(--amber); box-shadow: 0 0 0 1px var(--amber); }
+  .cal-day.today { outline: 2px solid var(--teal); outline-offset: 1px; }
+  .cal-day.empty { visibility: hidden; }
+  .legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 14px; font-size: 10px; color: var(--text-dim); }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .legend-swatch { width: 9px; height: 9px; border-radius: 3px; flex-shrink: 0; }
+  .period-form { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }
+  .field-row { display: flex; gap: 10px; }
+  .field-group { display: flex; flex-direction: column; gap: 5px; flex: 1; }
+  .field-group label { font-size: 11px; color: var(--text-dim); }
+  details.settings-disclosure summary { font-size: 13px; color: var(--text-dim); cursor: pointer; list-style: none; display: flex; align-items: center; gap: 6px; }
+  details.settings-disclosure summary::-webkit-details-marker { display: none; }
+  details.settings-disclosure[open] summary { margin-bottom: 12px; }
+  .history-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .history-row:last-child { border-bottom: none; }
+  .history-dates { font-family: 'SF Mono', monospace; font-size: 12px; }
+  .history-actions span { color: var(--danger); font-size: 12px; cursor: pointer; }
+
+  /* Tab bar: two modes - compact (4 fixed + More) or scrollable (all tabs, swipe) */
+  #tabbar { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0,20,16,0.92); backdrop-filter: blur(12px); border-top: 1px solid var(--border); padding: 8px 4px calc(8px + var(--safe-bottom)); z-index: 100; }
+  #tabbar.mode-compact { display: flex; }
+  #tabbar.mode-scroll { display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity; }
+  #tabbar.mode-scroll .tab-btn { flex: 0 0 auto; min-width: 64px; scroll-snap-align: start; }
+  #tabbar.mode-compact .tab-btn { flex: 1; }
+  #tabbar.mode-compact .tab-btn.overflow-hidden { display: none; }
+  .tab-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--text-dim); font-size: 9px; font-family: 'SF Mono', monospace; letter-spacing: 0.01em; padding: 4px 6px; cursor: pointer; }
+  .tab-btn.active { color: var(--accent); text-shadow: 0 0 8px var(--accent-glow); }
+  .tab-icon { width: 20px; height: 20px; }
+
+  /* More grid overlay (compact mode only) */
+  #more-overlay, .group-overlay { position: fixed; inset: 0; background: rgba(0,10,6,0.97); z-index: 200; display: none; flex-direction: column; padding: calc(20px + var(--safe-top)) 20px calc(90px + var(--safe-bottom)); overflow-y: auto; }
+  #more-overlay.active, .group-overlay.active { display: flex; }
+  #more-overlay .more-header, .group-overlay .more-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  #more-overlay .more-close, .group-overlay .more-close { width: 32px; height: 32px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; color: var(--text-dim); }
+  #more-grid, .more-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .more-tile { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 8px; display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; }
+  .more-tile svg { width: 26px; height: 26px; color: var(--amber); }
+  .more-tile span { font-size: 11px; font-family: 'SF Mono', monospace; color: var(--text); text-align: center; }
+
+  .nav-toggle-row { display: flex; align-items: center; justify-content: space-between; }
+  .nav-toggle-row .toggle-track { width: 44px; height: 24px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border); position: relative; cursor: pointer; flex-shrink: 0; }
+  .nav-toggle-row .toggle-track.on { background: var(--teal-dim); border-color: var(--teal); }
+  .nav-toggle-row .toggle-knob { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--text-dim); transition: transform 0.15s; }
+  .nav-toggle-row .toggle-track.on .toggle-knob { background: var(--teal); transform: translateX(20px); }
+
+  ::-webkit-scrollbar { display: none; }
+  code.inline { background: var(--surface-2); padding: 2px 6px; border-radius: 4px; font-family: 'SF Mono', monospace; font-size: 12px; }
+  .note-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px; }
+  .note-text { font-size: 14px; line-height: 1.5; white-space: pre-wrap; margin-bottom: 8px; }
+  .note-meta { display: flex; align-items: center; justify-content: space-between; }
+  .note-date { font-family: 'SF Mono', monospace; font-size: 10px; color: var(--text-dim); }
+  .note-del { color: var(--text-dim); font-size: 12px; cursor: pointer; }
+  .note-del:hover { color: var(--danger); }
+  .provider-select { display: flex; gap: 8px; margin-bottom: 12px; }
+  .provider-pill { flex: 1; text-align: center; padding: 10px 8px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); font-size: 12px; font-family: 'SF Mono', monospace; cursor: pointer; color: var(--text-dim); }
+  .provider-pill.active { border-color: var(--accent); color: var(--accent); background: var(--amber-dim); box-shadow: 0 0 8px var(--accent-glow); }
+  .provider-switch-link { font-size: 11px; color: var(--text-dim); text-align: center; margin-top: 10px; cursor: pointer; text-decoration: underline; }
+  .book-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px; }
+  .book-title { font-size: 15px; font-weight: 600; }
+  .book-author { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .book-status-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .book-status-btn { font-size: 10px; font-family: 'SF Mono', monospace; padding: 5px 10px; border-radius: 7px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-dim); cursor: pointer; }
+  .book-status-btn.active { border-color: var(--accent); color: var(--accent); background: var(--teal-dim); }
+  .book-notes { margin-top: 10px; }
+  .book-notes textarea { font-size: 13px; min-height: 60px; }
+  .book-del { color: var(--text-dim); font-size: 12px; cursor: pointer; margin-top: 8px; display: inline-block; }
+  .book-del:hover { color: var(--danger); }
+  .bbt-svg-chart { width: 100%; height: auto; display: block; }
+
+  /* ── Floating AVA orb ── */
+  #chat-orb {
+    position: fixed; bottom: 40px; right: 40px; width: 70px; height: 70px; border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #00ffc6, #00bfa5 70%, #004d40 100%);
+    box-shadow: 0 0 25px #00ffc6, 0 0 60px #00ffc6, inset 0 0 10px rgba(255,255,255,0.2);
+    display: flex; align-items: center; justify-content: center; font-size: 1.8rem;
+    cursor: grab; user-select: none;
+    animation: floaty 3s ease-in-out infinite, shimmer 4s ease-in-out infinite;
+    z-index: 9999; transition: transform 0.15s ease, box-shadow 0.3s ease;
+  }
+  #chat-orb:active { cursor: grabbing; transform: scale(1.1); }
+  #chat-orb:hover { box-shadow: 0 0 40px #00ffc6, 0 0 100px #00ffc6; }
+  @keyframes floaty { 0% { transform: translateY(0px); } 50% { transform: translateY(-6px); } 100% { transform: translateY(0px); } }
+  @keyframes shimmer {
+    0%, 100% { box-shadow: 0 0 25px #00ffc6, 0 0 60px #00ffc6, inset 0 0 10px rgba(255,255,255,0.2); }
+    50% { box-shadow: 0 0 35px #00ffd5, 0 0 90px #00ffc6, inset 0 0 12px rgba(255,255,255,0.3); }
+  }
+  .trail {
+    position: fixed; width: 45px; height: 45px; border-radius: 50%; pointer-events: none;
+    background: radial-gradient(circle, rgba(0,255,204,0.6) 0%, rgba(0,255,204,0.05) 80%);
+    filter: blur(8px); opacity: 0.8; animation: fadeTrail 0.8s ease-out forwards; z-index: 9998;
+  }
+  @keyframes fadeTrail { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(2); opacity: 0; } }
+
+  /* ── Section fade-in ── */
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .screen.active { animation: fadeIn 0.3s ease-in-out; }
+
+  /* ── Calendar day highlights ── */
+  .period-day { background: rgba(255,105,180,0.2) !important; border: 1px solid #ff4081 !important; text-shadow: 0 0 6px rgba(255,100,160,0.7); }
+  .fertile-day { background: rgba(0,255,102,0.10) !important; border: 1px solid #00ff99 !important; }
+  .ovulation-day { background: rgba(0,204,255,0.12) !important; border: 1px solid #00e5ff !important; }
+  .predicted-period-day { background: rgba(255,120,140,0.10); border: 1px solid rgba(255,120,140,0.3) !important; animation: softPulse 3s ease-in-out infinite; }
+  @keyframes softPulse {
+    0% { box-shadow: 0 0 6px rgba(255,120,140,0.25); }
+    50% { box-shadow: 0 0 14px rgba(255,120,140,0.45); }
+    100% { box-shadow: 0 0 6px rgba(255,120,140,0.25); }
+  }
+
+  /* ── Tooltips ── */
+  .tooltip {
+    position: absolute; backdrop-filter: blur(10px); background: rgba(10,15,20,0.75);
+    font-family: 'Poppins', sans-serif; font-weight: 300; padding: 10px 14px;
+    border-radius: 12px; pointer-events: none; z-index: 1000; font-size: 0.78rem;
+    letter-spacing: 0.3px; display: none;
+  }
+  .day:hover .tooltip { display: block; }
+  .day.period:hover .tooltip { color: rgba(255,182,193,0.95); border: 1px solid rgba(255,105,180,0.6); box-shadow: 0 0 18px rgba(255,105,180,0.6); }
+  .day.fertile:hover .tooltip { color: rgba(144,238,144,0.95); border: 1px solid rgba(144,238,144,0.6); box-shadow: 0 0 18px rgba(144,238,144,0.6); }
+  .day.ovulation:hover .tooltip { color: rgba(135,206,250,0.95); border: 1px solid rgba(135,206,250,0.6); box-shadow: 0 0 18px rgba(135,206,250,0.6); }
+
+  /* ── Book card enhanced ── */
+  .book-card { background: rgba(0,30,24,0.65) !important; border: 1px solid var(--border) !important; transition: transform 180ms ease, box-shadow 180ms ease; cursor: pointer; }
+  .book-card:hover { transform: translateY(-4px); box-shadow: 0 8px 30px rgba(0,0,0,0.45), 0 0 12px var(--accent-glow) !important; }
+  .fade-in { animation: cardIntro 260ms ease both; }
+  @keyframes cardIntro { from { opacity: 0; transform: translateY(8px) scale(0.995); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  .progress-bar { height: 8px; background: rgba(255,255,255,0.04); border-radius: 8px; overflow: hidden; margin-top: 8px; }
+  .progress-bar > i { display: block; height: 100%; background: linear-gradient(90deg, #00ffc6, #00bfa5 60%); width: 0%; transition: width 220ms ease; }
+
+  /* ── Suggestion cards ── */
+  .suggestion-card {
+    display: flex; gap: 12px; border: 1px solid rgba(0,255,198,0.25); border-radius: 10px;
+    padding: 10px; margin-bottom: 10px; background: rgba(0,40,30,0.55); color: #fff;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .suggestion-card:hover { transform: translateY(-4px); box-shadow: 0 4px 20px rgba(0,255,198,0.15); }
+  .suggestion-card .cover img { width: 80px; height: 120px; object-fit: cover; border-radius: 6px; }
+  .suggestion-card .title { font-weight: bold; }
+  .suggestion-card .author { font-style: italic; margin-bottom: 4px; color: #aaffdd; }
+  .suggestion-card .description { font-size: 0.85rem; color: #aaffdd; max-height: 4em; overflow: hidden; }
+  .add-book-btn { margin-top: 4px; padding: 4px 8px; background: #00ffc6; border: none; border-radius: 6px; cursor: pointer; color: #001912; font-weight: 600; }
+  .add-book-btn:hover { background: #00e6b3; }
+
+  /* ── More overlay updated ── */
+  #more-overlay { background: rgba(0,10,6,0.97); }
+  .more-tile { background: rgba(0,30,24,0.6) !important; }
+  .more-tile svg { color: var(--accent) !important; }
+  .more-tile:hover { border-color: var(--accent) !important; box-shadow: 0 0 12px var(--accent-glow); }
+
+  /* ── Stat values ── */
+  .stat-value.teal { color: var(--accent); text-shadow: 0 0 8px var(--accent-glow); }
+
+  /* ── Toggle on = green ── */
+  .nav-toggle-row .toggle-track.on { background: var(--teal-dim); border-color: var(--accent); }
+  .nav-toggle-row .toggle-track.on .toggle-knob { background: var(--accent); transform: translateX(20px); }
+
+  /* ── Month nav button ── */
+  .month-btn:hover { border-color: var(--accent); color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div class="pulse-wrap"><div class="pulse-dot"></div><span class="mono">AVA</span></div>
+  <span id="sys-clock" class="mono"></span>
+</div>
+
+<!-- AVA Floating Orb -->
+<div id="chat-orb" title="AVA">
+  <svg width="54" height="54" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="ava-symbol">
+    <defs>
+      <radialGradient id="ava-glow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#00ffc6" stop-opacity="1"/>
+        <stop offset="60%" stop-color="#00bfa5" stop-opacity="0.6"/>
+        <stop offset="100%" stop-color="#002f2f" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="aura" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#00ffc6" stop-opacity="0.3"/>
+        <stop offset="100%" stop-color="#00ffc6" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <circle cx="50" cy="50" r="48" fill="url(#aura)">
+      <animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="20s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="50" cy="50" r="28" fill="url(#ava-glow)" stroke="#00ffc6" stroke-width="2"/>
+    <circle cx="50" cy="50" r="38" stroke="#00ffc6" stroke-width="1.2" stroke-opacity="0.4" fill="none">
+      <animateTransform attributeName="transform" type="rotate" from="0 50 50" to="-360 50 50" dur="25s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="50" cy="50" r="18" stroke="#00ffc6" stroke-width="1" stroke-opacity="0.3" fill="none">
+      <animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="15s" repeatCount="indefinite"/>
+    </circle>
+    <path d="M50 25 L65 50 L50 75 L35 50 Z" fill="none" stroke="#00ffc6" stroke-width="1.6" stroke-opacity="0.8">
+      <animateTransform attributeName="transform" type="rotate" from="0 50 50" to="-360 50 50" dur="12s" repeatCount="indefinite"/>
+    </path>
+    <circle cx="50" cy="50" r="6" fill="#00ffc6" opacity="0.9">
+      <animate attributeName="r" values="6;7;6" dur="3s" repeatCount="indefinite"/>
+    </circle>
+  </svg>
+</div>
+
+<!-- HOME -->
+<div class="screen active" id="home-screen">
+  <div class="page-header">
+    <div class="page-eyebrow" id="home-date"></div>
+    <div class="page-title">Good to see you</div>
+  </div>
+  <div class="stat-strip" id="home-cycle-strip" style="display:none;">
+    <div class="stat-box"><div class="stat-label">Next period</div><div class="stat-value rose" id="home-next-period">—</div></div>
+    <div class="stat-box"><div class="stat-label">Fertility today</div><div class="stat-value teal" id="home-fertility">—</div></div>
+  </div>
+  <div class="section-link">To-dos</div>
+  <div class="card"><div id="home-todos"></div></div>
+  <div class="card">
+    <div class="nav-toggle-row">
+      <div>
+        <div style="font-size:13px; font-weight:600;">Scrollable nav</div>
+        <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">Off: grouped tabs. On: swipe through all tabs.</div>
+      </div>
+      <div class="toggle-track" id="nav-mode-toggle"><div class="toggle-knob"></div></div>
+    </div>
+  </div>
+  <div class="card" id="storage-card">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+      <div style="font-size:13px; font-weight:600;">Your data</div>
+      <div id="storage-status" style="font-size:11px; color:var(--accent); font-family:'SF Mono',monospace;">● SAVED</div>
+    </div>
+    <div id="storage-summary" style="font-size:12px; color:var(--text-dim); line-height:1.8; margin-bottom:14px;"></div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="primary" id="export-btn" style="flex:1; min-width:100px;">⬇ Export backup</button>
+      <button class="primary" id="import-backup-btn" style="flex:1; min-width:100px; background:var(--surface-2); color:var(--text); border:1px solid var(--border);">⬆ Restore backup</button>
+    </div>
+    <input type="file" id="import-backup-file" accept=".json" style="display:none;">
+    <div id="import-backup-result" style="font-size:12px; color:var(--text-dim); margin-top:8px;"></div>
+  </div>
+</div>
+
+<!-- CHAT -->
+<div class="screen" id="chat-screen">
+  <div class="page-header" style="padding-bottom:8px;"><div class="page-eyebrow">AI Chat</div></div>
+  <div id="chat-key-card" class="card" style="margin:0 16px 14px;">
+    <div class="stat-label">Choose your AI provider</div>
+    <div class="provider-select" style="margin-top:10px;">
+      <div class="provider-pill" data-provider="gemini">Gemini</div>
+      <div class="provider-pill" data-provider="openai">OpenAI</div>
+      <div class="provider-pill" data-provider="anthropic">Claude</div>
+    </div>
+    <p id="provider-desc" style="font-size:12px; color:var(--text-dim); line-height:1.5; margin:8px 0 12px;"></p>
+    <input type="password" id="api-key-input" placeholder="">
+    <button class="primary" id="save-key-btn" style="width:100%; margin-top:10px;">Save key</button>
+  </div>
+  <div id="chat-log" style="display:none;"></div>
+  <div id="provider-active-label" style="display:none; text-align:center; font-size:10px; color:var(--text-dim); font-family:'SF Mono', monospace; padding-bottom:6px;"></div>
+  <div id="chat-input-row" style="display:none;">
+    <input type="text" id="chat-input" placeholder="Ask me anything...">
+    <button class="primary" id="chat-send">Send</button>
+  </div>
+</div>
+
+<!-- TODOS -->
+<div class="screen" id="todos-screen">
+  <div class="page-header"><div class="page-eyebrow">Tasks</div><div class="page-title">To-dos</div></div>
+  <div class="card">
+    <div id="todo-list"></div>
+    <div id="todo-input-row">
+      <input type="text" id="todo-input" placeholder="Add a to-do...">
+      <button class="primary" id="todo-add">Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- CYCLE -->
+<div class="screen" id="cycle-screen">
+  <div class="page-header"><div class="page-eyebrow">Private</div><div class="page-title">Cycle Tracking</div></div>
+  <div class="stat-strip" id="cycle-stats"></div>
+  <div class="card">
+    <div id="month-nav">
+      <div class="month-btn" id="month-prev">‹</div>
+      <div class="month-label" id="month-label">—</div>
+      <div class="month-btn" id="month-next">›</div>
+    </div>
+    <div id="calendar-grid"></div>
+    <div class="legend">
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--rose-dim); border:1px solid var(--rose);"></span>Logged period</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--surface-2); border:1px dashed var(--rose);"></span>Predicted</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--surface-2); border:1px solid var(--amber);"></span>Ovulation</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--surface-2); outline:2px solid var(--teal);"></span>Today</div>
+    </div>
+  </div>
+  <div class="card" id="averages-banner" style="display:none;">
+    <div class="stat-label">Predicting from</div>
+    <div id="averages-text" style="font-size:13px; color:var(--text); margin-top:6px; line-height:1.5;"></div>
+  </div>
+  <div class="card">
+    <div class="stat-label">Basal body temperature</div>
+    <div id="bbt-chart-wrap" style="margin-top:10px;"></div>
+    <div class="field-row" style="margin-top:14px;">
+      <div class="field-group"><label>Date</label><input type="date" id="bbt-date"></div>
+      <div class="field-group"><label>Temp (°F)</label><input type="number" id="bbt-temp" step="0.01" placeholder="98.20"></div>
+    </div>
+    <button class="primary" id="bbt-log-btn" style="width:100%; margin-top:10px;">Log temp</button>
+    <details class="settings-disclosure" style="margin-top:14px;">
+      <summary>BBT history (<span id="bbt-count">0</span>) ▾</summary>
+      <div id="bbt-history-list" style="margin-top:4px;"></div>
+    </details>
+  </div>
+  <div class="card">
+    <div class="stat-label">Log a period</div>
+    <div class="period-form">
+      <div class="field-row">
+        <div class="field-group"><label>Start date</label><input type="date" id="period-start"></div>
+        <div class="field-group"><label>End date (optional)</label><input type="date" id="period-end"></div>
+      </div>
+      <button class="primary" id="period-log-btn">Log it</button>
+    </div>
+  </div>
+  <div class="card">
+    <details class="settings-disclosure">
+      <summary>History (<span id="history-count">0</span>) ▾</summary>
+      <div id="history-list" style="margin-top:4px;"></div>
+    </details>
+  </div>
+  <div class="card">
+    <details class="settings-disclosure">
+      <summary>Import past data ▾</summary>
+      <div>
+        <p style="font-size:12px; color:var(--text-dim); line-height:1.5; margin-bottom:10px;">
+          Paste data exported from another period app. Accepts JSON (<code class="inline">[{"start_date":"2026-01-01","end_date":"2026-01-05"}]</code>) or CSV (<code class="inline">start_date,end_date</code> per line).
+        </p>
+        <textarea id="import-text" rows="5" placeholder="Paste JSON or CSV here..."></textarea>
+        <button class="primary" id="import-btn" style="margin-top:10px; width:100%;">Import</button>
+        <div id="import-result" style="font-size:12px; color:var(--text-dim); margin-top:8px;"></div>
+      </div>
+    </details>
+  </div>
+  <div class="card">
+    <details class="settings-disclosure">
+      <summary>Cycle settings ▾</summary>
+      <div class="period-form" style="margin-top:0;">
+        <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text);">
+          <input type="checkbox" id="set-auto-calculate" style="width:auto;"> Auto-calculate from my logged history
+        </label>
+        <div class="field-row">
+          <div class="field-group"><label>Avg. cycle length (days)</label><input type="number" id="set-cycle-length" min="15" max="60"></div>
+          <div class="field-group"><label>Avg. period length (days)</label><input type="number" id="set-period-length" min="1" max="14"></div>
+        </div>
+        <button class="primary" id="settings-save-btn">Save settings</button>
+      </div>
+    </details>
+    <p style="font-size:11px; color:var(--text-dim); margin-top:14px; line-height:1.5;">
+      Predictions are calendar-based estimates from your logged dates, not a medical measurement. Don't rely on this alone for contraception or conception planning.
+    </p>
+  </div>
+</div>
+
+<!-- NOTES -->
+<div class="screen" id="notes-screen">
+  <div class="page-header"><div class="page-eyebrow">Knowledge</div><div class="page-title">Notes</div></div>
+  <div class="card">
+    <input type="text" id="notes-search" placeholder="Search notes...">
+  </div>
+  <div class="card">
+    <textarea id="note-input" rows="3" placeholder="Write a note..."></textarea>
+    <button class="primary" id="note-add" style="width:100%; margin-top:10px;">Save note</button>
+  </div>
+  <div id="notes-list"></div>
+</div>
+
+<!-- BOOKS -->
+<div class="screen" id="books-screen">
+  <div class="page-header"><div class="page-eyebrow">Reading</div><div class="page-title">Books</div></div>
+  <div class="card">
+    <div class="field-row">
+      <div class="field-group" style="flex:2;"><label>Title</label><input type="text" id="book-title-input" placeholder="Book title"></div>
+      <div class="field-group" style="flex:1;"><label>Author</label><input type="text" id="book-author-input" placeholder="Author"></div>
+    </div>
+    <button class="primary" id="book-add" style="width:100%; margin-top:10px;">Add to list</button>
+  </div>
+  <div class="provider-select" id="book-status-filter">
+    <div class="provider-pill active" data-status="want">Want to read</div>
+    <div class="provider-pill" data-status="reading">Reading</div>
+    <div class="provider-pill" data-status="finished">Finished</div>
+  </div>
+  <div id="books-list"></div>
+</div>
+
+<!-- CALENDAR -->
+<div class="screen" id="calendar-screen">
+  <div class="page-header"><div class="page-eyebrow">Schedule</div><div class="page-title">Calendar</div></div>
+  <div class="stat-strip" id="cal-stats"></div>
+  <div class="card">
+    <div id="month-nav-cal" class="month-nav">
+      <div class="month-btn" id="cal-month-prev">‹</div>
+      <div class="month-label" id="cal-month-label">—</div>
+      <div class="month-btn" id="cal-month-next">›</div>
+    </div>
+    <div id="event-calendar-grid"></div>
+  </div>
+  <div class="card">
+    <div class="stat-label">Add event</div>
+    <div class="period-form">
+      <input type="text" id="event-title-input" placeholder="Event title">
+      <div class="field-row">
+        <div class="field-group"><label>Date</label><input type="date" id="event-date-input"></div>
+        <div class="field-group"><label>Time (optional)</label><input type="time" id="event-time-input"></div>
+      </div>
+      <button class="primary" id="event-add-btn">Add event</button>
+    </div>
+  </div>
+  <div id="day-events-list"></div>
+</div>
+
+<!-- MOVIES & TV -->
+<div class="screen" id="movies-screen">
+  <div class="page-header"><div class="page-eyebrow">Watching</div><div class="page-title">Movies &amp; TV</div></div>
+  <div class="card">
+    <div class="field-row">
+      <div class="field-group" style="flex:2;"><label>Title</label><input type="text" id="movie-title-input" placeholder="Movie or show title"></div>
+      <div class="field-group" style="flex:1;"><label>Type</label>
+        <select id="movie-type-input" style="background:var(--surface-2); border:1px solid var(--border); color:var(--text); padding:13px 14px; border-radius:10px; font-size:16px; width:100%;">
+          <option value="movie">Movie</option>
+          <option value="tv">TV Show</option>
+        </select>
+      </div>
+    </div>
+    <button class="primary" id="movie-add" style="width:100%; margin-top:10px;">Add to watchlist</button>
+  </div>
+  <div class="provider-select" id="movie-status-filter">
+    <div class="provider-pill active" data-status="watchlist">Watchlist</div>
+    <div class="provider-pill" data-status="watched">Watched</div>
+  </div>
+  <div id="movies-list"></div>
+</div>
+
+<!-- GAMES -->
+<div class="screen" id="games-screen">
+  <div class="page-header"><div class="page-eyebrow">Backlog</div><div class="page-title">Games</div></div>
+  <div class="card">
+    <div class="field-row">
+      <div class="field-group" style="flex:2;"><label>Title</label><input type="text" id="game-title-input" placeholder="Game title"></div>
+      <div class="field-group" style="flex:1;"><label>Platform</label>
+        <select id="game-platform-input" style="background:var(--surface-2); border:1px solid var(--border); color:var(--text); padding:13px 14px; border-radius:10px; font-size:16px; width:100%;">
+          <option value="pc">PC (Steam)</option>
+          <option value="playstation">PlayStation</option>
+          <option value="xbox">Xbox</option>
+          <option value="switch">Switch</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-row" id="game-manual-price-row">
+      <div class="field-group"><label>Price (manual, optional)</label><input type="number" id="game-price-input" step="0.01" placeholder="59.99"></div>
+    </div>
+    <button class="primary" id="game-add" style="width:100%; margin-top:10px;">Add to backlog</button>
+    <div id="game-price-status" style="font-size:11px; color:var(--text-dim); margin-top:8px;"></div>
+  </div>
+  <div class="provider-select" id="game-status-filter">
+    <div class="provider-pill active" data-status="want">Want to play</div>
+    <div class="provider-pill" data-status="playing">Playing</div>
+    <div class="provider-pill" data-status="beaten">Beaten</div>
+  </div>
+  <div id="games-list"></div>
+</div>
+
+<!-- FINANCE -->
+<div class="screen" id="finance-screen">
+  <div class="page-header"><div class="page-eyebrow">Money</div><div class="page-title">Finance</div></div>
+  <div class="provider-select" id="finance-view-filter">
+    <div class="provider-pill active" data-view="expenses">Expenses</div>
+    <div class="provider-pill" data-view="budgets">Budgets</div>
+    <div class="provider-pill" data-view="goals">Goals</div>
+  </div>
+
+  <div id="finance-expenses-view">
+    <div class="stat-strip" id="finance-month-stats"></div>
+    <div class="card">
+      <div class="stat-label">Log an expense</div>
+      <div class="period-form">
+        <div class="field-row">
+          <div class="field-group"><label>Amount ($)</label><input type="number" id="expense-amount-input" step="0.01" placeholder="0.00"></div>
+          <div class="field-group"><label>Category</label>
+            <select id="expense-category-input" style="background:var(--surface-2); border:1px solid var(--border); color:var(--text); padding:13px 14px; border-radius:10px; font-size:16px; width:100%;"></select>
+          </div>
+        </div>
+        <input type="text" id="expense-note-input" placeholder="Note (optional)">
+        <button class="primary" id="expense-add-btn">Log expense</button>
+      </div>
+    </div>
+    <div id="expenses-list"></div>
+  </div>
+
+  <div id="finance-budgets-view" style="display:none;">
+    <div class="card">
+      <div class="stat-label">Set monthly budget</div>
+      <div class="period-form">
+        <div class="field-row">
+          <div class="field-group"><label>Category</label>
+            <select id="budget-category-input" style="background:var(--surface-2); border:1px solid var(--border); color:var(--text); padding:13px 14px; border-radius:10px; font-size:16px; width:100%;"></select>
+          </div>
+          <div class="field-group"><label>Limit ($)</label><input type="number" id="budget-limit-input" step="1" placeholder="500"></div>
+        </div>
+        <button class="primary" id="budget-set-btn">Set budget</button>
+      </div>
+    </div>
+    <div id="budgets-list"></div>
+  </div>
+
+  <div id="finance-goals-view" style="display:none;">
+    <div class="card">
+      <div class="stat-label">New savings goal</div>
+      <div class="period-form">
+        <input type="text" id="goal-name-input" placeholder="Goal name (e.g. Emergency fund)">
+        <div class="field-row">
+          <div class="field-group"><label>Target ($)</label><input type="number" id="goal-target-input" step="1" placeholder="1000"></div>
+          <div class="field-group"><label>Saved so far ($)</label><input type="number" id="goal-current-input" step="1" placeholder="0"></div>
+        </div>
+        <button class="primary" id="goal-add-btn">Create goal</button>
+      </div>
+    </div>
+    <div id="goals-list"></div>
+  </div>
+</div>
+
+<!-- MEDIA OVERLAY (Books, Movies, Games) -->
+<div id="media-overlay" class="group-overlay">
+  <div class="more-header">
+    <div class="page-title" style="font-size:22px;">Media</div>
+    <div class="more-close" id="media-close-btn">✕</div>
+  </div>
+  <div id="media-grid" class="more-grid"></div>
+</div>
+
+<!-- HEALTH OVERLAY (Cycle, Calendar, Finance) -->
+<div id="health-overlay" class="group-overlay">
+  <div class="more-header">
+    <div class="page-title" style="font-size:22px;">Health &amp; Life</div>
+    <div class="more-close" id="health-close-btn">✕</div>
+  </div>
+  <div id="health-grid" class="more-grid"></div>
+</div>
+
+<!-- TAB BAR -->
+<div id="tabbar"></div>
+
+<script>
+// Single source of truth for every tab: id, label, and SVG icon markup.
+const ALL_TABS = [
+  { id: 'home',     label: 'HOME',    svg: '<path d="M3 11.5L12 4l9 7.5"/><path d="M5 10v9a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1v-9"/>' },
+  { id: 'chat',     label: 'CHAT',    svg: '<path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/>' },
+  { id: 'todos',    label: 'TASKS',   svg: '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>' },
+  { id: 'notes',    label: 'NOTES',   svg: '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/>' },
+];
+
+// Grouped tabs for the two overlay buttons
+const MEDIA_TABS = [
+  { id: 'books',   label: 'BOOKS',   svg: '<path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>' },
+  { id: 'movies',  label: 'MOVIES',  svg: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M7 5l3 4M13 5l3 4M2 11h20"/>' },
+  { id: 'games',   label: 'GAMES',   svg: '<rect x="2" y="7" width="20" height="11" rx="4"/><path d="M7 10v4M5 12h4"/><circle cx="16" cy="11" r="1"/><circle cx="18.5" cy="13.5" r="1"/>' },
+];
+
+const HEALTH_TABS = [
+  { id: 'cycle',    label: 'CYCLE',    svg: '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/><circle cx="12" cy="14" r="2.5"/>' },
+  { id: 'calendar', label: 'CALENDAR', svg: '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>' },
+];
+
+const FINANCE_TAB = { id: 'finance', label: 'FINANCE', svg: '<circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5c0-1.5 1-2.5 2.5-2.5s2.5 1 2.5 2.2c0 2.8-5 1.6-5 4.3 0 1.3 1.1 2.3 2.5 2.3s2.5-1 2.5-2.3"/>' };
+
+
+// ============================================================
+// Storage: plain localStorage. Works fully offline, persists on
+// this device/browser only (no sync, no account, no server).
+// ============================================================
+const StorageKeys = {
+  todos: 'jarvis_todos',
+  periodLogs: 'jarvis_period_logs',
+  settings: 'jarvis_period_settings',
+  chat: 'jarvis_chat_history',
+  apiKey: 'jarvis_api_key',           // legacy single-key storage (pre-multi-provider), kept for migration
+  apiKeys: 'ava_api_keys',            // { gemini: '...', openai: '...', anthropic: '...' }
+  provider: 'ava_active_provider',    // 'gemini' | 'openai' | 'anthropic'
+  notes: 'ava_notes',
+  bbtLogs: 'ava_bbt_logs',            // [{id, date: 'YYYY-MM-DD', temp: number}]
+  books: 'ava_books',                 // [{id, title, author, status, notes, createdAt}]
+  events: 'ava_events',               // [{id, title, date: 'YYYY-MM-DD', time: 'HH:MM'|null}]
+  movies: 'ava_movies',               // [{id, title, type: 'movie'|'tv', status, rating, createdAt}]
+  games: 'ava_games',                 // [{id, title, platform, status, rating, price, priceSource, createdAt}]
+  expenses: 'ava_expenses',           // [{id, amount, category, note, date: 'YYYY-MM-DD'}]
+  budgets: 'ava_budgets',             // { categoryName: limitAmount }
+  goals: 'ava_goals',                 // [{id, name, target, current}]
+};
+
+// ============================================================
+// Storage: IndexedDB (primary) with localStorage fallback.
+// All data is local-first, no server, no account needed.
+// ============================================================
+const DB_NAME = 'ava_db';
+const DB_VERSION = 1;
+const STORE = 'keyval';
+
+let _db = null;
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    if (_db) return resolve(_db);
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = e => e.target.result.createObjectStore(STORE);
+    req.onsuccess = e => { _db = e.target.result; resolve(_db); };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function idbSet(key, value) {
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readwrite');
+      tx.objectStore(STORE).put(value, key);
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (e) {
+    // fallback to localStorage
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (_) {}
+  }
+}
+
+async function idbGet(key) {
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readonly');
+      const req = tx.objectStore(STORE).get(key);
+      req.onsuccess = () => resolve(req.result ?? null);
+      req.onerror = () => reject(req.error);
+    });
+  } catch (e) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch (_) { return null; }
+  }
+}
+
+async function idbGetAll() {
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readonly');
+      const store = tx.objectStore(STORE);
+      const keys = [], values = [];
+      store.openCursor().onsuccess = e => {
+        const cursor = e.target.result;
+        if (cursor) { keys.push(cursor.key); values.push(cursor.value); cursor.continue(); }
+        else {
+          const result = {};
+          keys.forEach((k, i) => result[k] = values[i]);
+          resolve(result);
+        }
+      };
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (e) { return {}; }
+}
+
+// Migrate existing localStorage data into IndexedDB on first load
+async function migrateFromLocalStorage() {
+  const allKeys = Object.values(StorageKeys);
+  for (const key of allKeys) {
+    const lsVal = localStorage.getItem(key);
+    if (lsVal !== null) {
+      try {
+        await idbSet(key, JSON.parse(lsVal));
+      } catch (_) {}
+    }
+  }
+}
+
+// Sync load from localStorage for immediate startup (no async wait),
+// then IndexedDB writes take over for all subsequent saves.
+function loadJSON(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch (e) { return fallback; }
+}
+
+// All saves go to both localStorage (instant) + IndexedDB (durable)
+function saveJSON(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+  idbSet(key, value).catch(() => {});
+}
+
+let todos = loadJSON(StorageKeys.todos, []);
+let periodLogs = loadJSON(StorageKeys.periodLogs, []); // [{id, start: 'YYYY-MM-DD', end: 'YYYY-MM-DD'|null}]
+let settings = loadJSON(StorageKeys.settings, { cycleLength: 28, periodLength: 5, lutealLength: 14, autoCalculate: true });
+let chatHistory = loadJSON(StorageKeys.chat, []);
+let notes = loadJSON(StorageKeys.notes, []); // [{id, text, createdAt}]
+let bbtLogs = loadJSON(StorageKeys.bbtLogs, []); // [{id, date, temp}]
+let books = loadJSON(StorageKeys.books, []); // [{id, title, author, status, notes, createdAt}]
+let events = loadJSON(StorageKeys.events, []);
+let movies = loadJSON(StorageKeys.movies, []);
+let games = loadJSON(StorageKeys.games, []);
+let expenses = loadJSON(StorageKeys.expenses, []);
+let budgets = loadJSON(StorageKeys.budgets, {});
+let goals = loadJSON(StorageKeys.goals, []);
+const EXPENSE_CATEGORIES = ['Food', 'Rent', 'Transport', 'Entertainment', 'Shopping', 'Bills', 'Health', 'Other'];
+
+// ---- Multi-provider API keys ----
+// Migrate a pre-existing single Gemini key (from before provider switching existed)
+// into the new per-provider key map, so nobody loses their saved key on update.
+let apiKeys = loadJSON(StorageKeys.apiKeys, null);
+if (!apiKeys) {
+  const legacyKey = loadJSON(StorageKeys.apiKey, '');
+  apiKeys = { gemini: legacyKey || '', openai: '', anthropic: '' };
+  saveJSON(StorageKeys.apiKeys, apiKeys);
+}
+let activeProvider = loadJSON(StorageKeys.provider, apiKeys.gemini ? 'gemini' : null);
+
+function persistTodos() { saveJSON(StorageKeys.todos, todos); }
+function persistPeriodLogs() { saveJSON(StorageKeys.periodLogs, periodLogs); }
+function persistSettings() { saveJSON(StorageKeys.settings, settings); }
+function persistChat() { saveJSON(StorageKeys.chat, chatHistory); }
+function persistApiKeys() { saveJSON(StorageKeys.apiKeys, apiKeys); }
+function persistProvider() { saveJSON(StorageKeys.provider, activeProvider); }
+function persistNotes() { saveJSON(StorageKeys.notes, notes); }
+function persistBbtLogs() { saveJSON(StorageKeys.bbtLogs, bbtLogs); }
+function persistBooks() { saveJSON(StorageKeys.books, books); }
+function persistEvents() { saveJSON(StorageKeys.events, events); }
+function persistMovies() { saveJSON(StorageKeys.movies, movies); }
+function persistGames() { saveJSON(StorageKeys.games, games); }
+function persistExpenses() { saveJSON(StorageKeys.expenses, expenses); }
+function persistBudgets() { saveJSON(StorageKeys.budgets, budgets); }
+function persistGoals() { saveJSON(StorageKeys.goals, goals); }
+
+function $(id) { return document.getElementById(id); }
+function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ============================================================
+// Clock
+// ============================================================
+function tickClock() { $('sys-clock').textContent = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }); }
+tickClock();
+setInterval(tickClock, 30000);
+$('home-date').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase();
+
+// ============================================================
+// Tab navigation (compact w/ More grid, or scrollable)
+// ============================================================
+let navMode = loadJSON('ava_nav_mode', 'compact'); // 'compact' | 'scroll'
+let activeScreen = 'home';
+
+function tabIconSvg(tab) {
+  return `<svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${tab.svg}</svg>`;
+}
+
+function closeAllOverlays() {
+  document.querySelectorAll('.group-overlay').forEach(o => o.classList.remove('active'));
+}
+
+function switchScreen(screenId) {
+  activeScreen = screenId;
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(screenId + '-screen').classList.add('active');
+  closeAllOverlays();
+  renderTabBar();
+}
+
+const MEDIA_IDS  = MEDIA_TABS.map(t => t.id);
+const HEALTH_IDS = HEALTH_TABS.map(t => t.id);
+
+function renderTabBar() {
+  const bar = $('tabbar');
+  bar.className = navMode === 'scroll' ? 'mode-scroll' : 'mode-compact';
+  bar.innerHTML = '';
+
+  const allGrouped = [...MEDIA_TABS, ...HEALTH_TABS, FINANCE_TAB];
+
+  if (navMode === 'scroll') {
+    [...ALL_TABS, ...allGrouped].forEach(tab => {
+      const btn = document.createElement('div');
+      btn.className = 'tab-btn' + (tab.id === activeScreen ? ' active' : '');
+      btn.innerHTML = `${tabIconSvg(tab)}${tab.label}`;
+      btn.onclick = () => switchScreen(tab.id);
+      bar.appendChild(btn);
+    });
+  } else {
+    // Primary tabs
+    ALL_TABS.forEach(tab => {
+      const btn = document.createElement('div');
+      btn.className = 'tab-btn' + (tab.id === activeScreen ? ' active' : '');
+      btn.innerHTML = `${tabIconSvg(tab)}${tab.label}`;
+      btn.onclick = () => switchScreen(tab.id);
+      bar.appendChild(btn);
+    });
+
+    // Finance tab (standalone)
+    const finBtn = document.createElement('div');
+    finBtn.className = 'tab-btn' + (activeScreen === 'finance' ? ' active' : '');
+    finBtn.innerHTML = `<svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${FINANCE_TAB.svg}</svg>${FINANCE_TAB.label}`;
+    finBtn.onclick = () => switchScreen('finance');
+    bar.appendChild(finBtn);
+
+    // Media group button
+    const mediaActive = MEDIA_IDS.includes(activeScreen);
+    const mediaBtn = document.createElement('div');
+    mediaBtn.className = 'tab-btn' + (mediaActive ? ' active' : '');
+    mediaBtn.innerHTML = `<svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M10 9l5 3-5 3V9z"/></svg>MEDIA`;
+    mediaBtn.onclick = () => {
+      closeAllOverlays();
+      buildGroupGrid('media-grid', MEDIA_TABS);
+      $('media-overlay').classList.add('active');
+    };
+    bar.appendChild(mediaBtn);
+
+    // Health group button
+    const healthActive = HEALTH_IDS.includes(activeScreen);
+    const healthBtn = document.createElement('div');
+    healthBtn.className = 'tab-btn' + (healthActive ? ' active' : '');
+    healthBtn.innerHTML = `<svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21C12 21 4 13.5 4 8.5A5 5 0 0112 5.07 5 5 0 0120 8.5C20 13.5 12 21 12 21z"/></svg>HEALTH`;
+    healthBtn.onclick = () => {
+      closeAllOverlays();
+      buildGroupGrid('health-grid', HEALTH_TABS);
+      $('health-overlay').classList.add('active');
+    };
+    bar.appendChild(healthBtn);
+  }
+}
+
+function buildGroupGrid(gridId, tabs) {
+  const grid = $(gridId);
+  grid.innerHTML = '';
+  tabs.forEach(tab => {
+    const tile = document.createElement('div');
+    tile.className = 'more-tile' + (tab.id === activeScreen ? ' active' : '');
+    tile.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${tab.svg}</svg><span>${tab.label}</span>`;
+    tile.onclick = () => switchScreen(tab.id);
+    if (tab.id === activeScreen) tile.style.borderColor = 'var(--accent)';
+    grid.appendChild(tile);
+  });
+}
+
+$('media-close-btn').onclick  = closeAllOverlays;
+$('health-close-btn').onclick = closeAllOverlays;
+
+function updateNavToggleUI() {
+  $('nav-mode-toggle').classList.toggle('on', navMode === 'scroll');
+}
+$('nav-mode-toggle').onclick = () => {
+  navMode = navMode === 'scroll' ? 'compact' : 'scroll';
+  saveJSON('ava_nav_mode', navMode);
+  updateNavToggleUI();
+  renderTabBar();
+};
+
+renderTabBar();
+updateNavToggleUI();
+
+// ============================================================
+// To-dos
+// ============================================================
+function renderTodos() {
+  renderTodoList();
+  renderHomeTodos();
+}
+function renderTodoList() {
+  const list = $('todo-list');
+  list.innerHTML = todos.length ? '' : '<div class="empty-state">No to-dos yet. Add one below.</div>';
+  todos.forEach(t => {
+    const row = document.createElement('div');
+    row.className = 'todo-item' + (t.done ? ' done' : '');
+    row.innerHTML = `<div class="todo-check">${t.done ? '✓' : ''}</div><div class="todo-text">${escapeHtml(t.text)}</div><div class="todo-del">✕</div>`;
+    row.querySelector('.todo-check').onclick = () => { t.done = !t.done; persistTodos(); renderTodos(); };
+    row.querySelector('.todo-del').onclick = () => { todos = todos.filter(x => x.id !== t.id); persistTodos(); renderTodos(); };
+    list.appendChild(row);
+  });
+}
+function renderHomeTodos() {
+  const open = todos.filter(t => !t.done).slice(0, 4);
+  const el = $('home-todos');
+  el.innerHTML = open.length ? '' : '<div class="empty-state">All caught up.</div>';
+  open.forEach(t => {
+    const row = document.createElement('div');
+    row.className = 'todo-item';
+    row.innerHTML = `<div class="todo-check"></div><div class="todo-text">${escapeHtml(t.text)}</div>`;
+    el.appendChild(row);
+  });
+}
+$('todo-add').onclick = addTodo;
+$('todo-input').addEventListener('keydown', e => { if (e.key === 'Enter') addTodo(); });
+function addTodo() {
+  const input = $('todo-input');
+  const text = input.value.trim();
+  if (!text) return;
+  todos.unshift({ id: Date.now(), text, done: false });
+  persistTodos();
+  input.value = '';
+  renderTodos();
+}
+
+// ============================================================
+// Period prediction math
+// ============================================================
+function toISODate(d) { return d.toISOString().slice(0, 10); }
+function fromISODate(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); }
+function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
+function daysBetween(a, b) { return Math.round((b - a) / 86400000); }
+function fertilityCurve(offset) {
+  const curve = { '-5': 10, '-4': 16, '-3': 24, '-2': 33, '-1': 36, '0': 38, '1': 10 };
+  return curve[String(offset)] ?? 0;
+}
+function computeAverages(logs, fallbackCycle, fallbackPeriod, maxCycles = 6) {
+  const sorted = [...logs].sort((a, b) => fromISODate(a.start) - fromISODate(b.start));
+  const periodLens = sorted.filter(l => l.end).map(l => daysBetween(fromISODate(l.start), fromISODate(l.end)) + 1);
+  const recentPeriod = periodLens.slice(-maxCycles);
+  const starts = sorted.map(l => fromISODate(l.start));
+  const cycleLens = [];
+  for (let i = 1; i < starts.length; i++) {
+    const gap = daysBetween(starts[i - 1], starts[i]);
+    if (gap >= 15) cycleLens.push(gap);
+  }
+  const recentCycle = cycleLens.slice(-maxCycles);
+  return {
+    avgCycle: recentCycle.length ? Math.round(recentCycle.reduce((a, b) => a + b) / recentCycle.length) : fallbackCycle,
+    avgPeriod: recentPeriod.length ? Math.round(recentPeriod.reduce((a, b) => a + b) / recentPeriod.length) : fallbackPeriod,
+    cyclesUsed: recentCycle.length,
+    source: recentCycle.length ? 'history' : 'default',
+  };
+}
+function predictMonth(logs, settings, year, month) {
+  const sorted = [...logs].sort((a, b) => fromISODate(b.start) - fromISODate(a.start));
+  const lastStart = sorted.length ? fromISODate(sorted[0].start) : null;
+  const avgRes = settings.autoCalculate ? computeAverages(logs, settings.cycleLength, settings.periodLength) : { avgCycle: settings.cycleLength, avgPeriod: settings.periodLength };
+  const avgCycle = avgRes.avgCycle, avgPeriod = avgRes.avgPeriod;
+
+  const loggedDates = new Set();
+  logs.forEach(l => {
+    const end = l.end ? fromISODate(l.end) : addDays(fromISODate(l.start), avgPeriod - 1);
+    let d = fromISODate(l.start);
+    while (d <= end) { loggedDates.add(toISODate(d)); d = addDays(d, 1); }
+  });
+
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const windowStart = new Date(year, month - 1, 1);
+  const windowEnd = new Date(year, month - 1, daysInMonth);
+
+  let cycleStarts = [];
+  if (lastStart) {
+    cycleStarts = [lastStart];
+    let cursor = new Date(lastStart);
+    while (cursor < addDays(windowEnd, avgCycle)) { cursor = addDays(cursor, avgCycle); cycleStarts.push(new Date(cursor)); }
+    cursor = new Date(lastStart);
+    while (cursor > addDays(windowStart, -avgCycle)) { cursor = addDays(cursor, -avgCycle); cycleStarts.unshift(new Date(cursor)); }
+  }
+
+  const days = [];
+  let d = new Date(windowStart);
+  while (d <= windowEnd) {
+    const iso = toISODate(d);
+    let currentCycleStart = null, nextCycleStart = null;
+    for (let i = 0; i < cycleStarts.length; i++) {
+      if (cycleStarts[i] <= d) {
+        currentCycleStart = cycleStarts[i];
+        nextCycleStart = cycleStarts[i + 1] || addDays(cycleStarts[i], avgCycle);
+      }
+    }
+    const isPeriod = loggedDates.has(iso);
+    let isPredictedPeriod = false;
+    if (currentCycleStart && !isPeriod) {
+      const dayIntoCycle = daysBetween(currentCycleStart, d);
+      if (dayIntoCycle >= 0 && dayIntoCycle < avgPeriod) isPredictedPeriod = true;
+    }
+    let fertility = 0, isOvulation = false;
+    if (nextCycleStart) {
+      const ovulationDay = addDays(nextCycleStart, -settings.lutealLength);
+      const offset = daysBetween(ovulationDay, d);
+      fertility = fertilityCurve(offset);
+      isOvulation = offset === 0;
+    }
+    days.push({ date: iso, fertility, isPeriod, isPredictedPeriod, isOvulation });
+    d = addDays(d, 1);
+  }
+
+  const today = toISODate(new Date());
+  const todayPred = days.find(x => x.date === today);
+  let cycleDay = null;
+  if (lastStart && new Date() >= lastStart) cycleDay = (daysBetween(lastStart, new Date()) % avgCycle) + 1;
+  let nextPeriodLabel = null;
+  if (lastStart) {
+    let predicted = new Date(lastStart);
+    const now = new Date(); now.setHours(0, 0, 0, 0);
+    while (predicted < now) predicted = addDays(predicted, avgCycle);
+    const daysUntil = daysBetween(now, predicted);
+    if (daysUntil === 0) nextPeriodLabel = 'Today';
+    else if (daysUntil === 1) nextPeriodLabel = 'Tomorrow';
+    else if (daysUntil > 0) nextPeriodLabel = `In ${daysUntil} days`;
+    else nextPeriodLabel = predicted.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  return { days, hasData: !!lastStart, todayFertility: todayPred ? todayPred.fertility : null, cycleDay, nextPeriodLabel, effectiveCycle: avgCycle, effectivePeriod: avgPeriod };
+}
+
+// ============================================================
+// Cycle screen
+// ============================================================
+let cycleViewDate = new Date();
+
+function loadCycleScreen() {
+  const year = cycleViewDate.getFullYear();
+  const month = cycleViewDate.getMonth() + 1;
+  $('month-label').textContent = cycleViewDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const data = predictMonth(periodLogs.map(l => ({ start: l.start, end: l.end })), settings, year, month);
+  renderCycleStats(data);
+  renderCalendar(data);
+  renderHomeCycleStrip(data);
+  renderAveragesBanner(data);
+}
+
+function renderCycleStats(data) {
+  const el = $('cycle-stats');
+  el.innerHTML = '';
+  if (!data.hasData) {
+    el.innerHTML = `<div class="card empty-state" style="flex:1;">Log your first period below to start getting predictions.</div>`;
+    return;
+  }
+  const boxes = [
+    { label: 'Next period', value: data.nextPeriodLabel || '—', cls: 'rose' },
+    { label: 'Cycle day', value: data.cycleDay != null ? `Day ${data.cycleDay}` : '—', cls: '' },
+    { label: 'Fertility today', value: data.todayFertility != null ? `${data.todayFertility}%` : '—', cls: 'teal' },
+  ];
+  boxes.forEach(b => {
+    const box = document.createElement('div');
+    box.className = 'stat-box';
+    box.innerHTML = `<div class="stat-label">${b.label}</div><div class="stat-value ${b.cls}">${b.value}</div>`;
+    el.appendChild(box);
+  });
+}
+
+function renderAveragesBanner(data) {
+  const banner = $('averages-banner');
+  if (!data.hasData) { banner.style.display = 'none'; return; }
+  banner.style.display = 'block';
+  const mode = settings.autoCalculate ? 'auto-calculated from your history' : 'manually set';
+  $('averages-text').textContent = `${data.effectiveCycle}-day cycle, ${data.effectivePeriod}-day period — ${mode}.`;
+}
+
+function renderHomeCycleStrip(data) {
+  if (!data.hasData) { $('home-cycle-strip').style.display = 'none'; return; }
+  $('home-cycle-strip').style.display = 'flex';
+  $('home-next-period').textContent = data.nextPeriodLabel || '—';
+  $('home-fertility').textContent = data.todayFertility != null ? `${data.todayFertility}%` : '—';
+}
+
+function renderCalendar(data) {
+  const grid = $('calendar-grid');
+  grid.innerHTML = '';
+  ['S','M','T','W','T','F','S'].forEach(d => {
+    const lbl = document.createElement('div');
+    lbl.className = 'cal-day-label';
+    lbl.textContent = d;
+    grid.appendChild(lbl);
+  });
+  const firstDay = new Date(cycleViewDate.getFullYear(), cycleViewDate.getMonth(), 1);
+  const startOffset = firstDay.getDay();
+  for (let i = 0; i < startOffset; i++) {
+    const empty = document.createElement('div');
+    empty.className = 'cal-day empty';
+    grid.appendChild(empty);
+  }
+  const todayStr = new Date().toDateString();
+  data.days.forEach(d => {
+    const cell = document.createElement('div');
+    let cls = 'cal-day';
+    if (d.isPeriod) cls += ' period';
+    else if (d.isPredictedPeriod) cls += ' predicted-period';
+    if (d.isOvulation) cls += ' ovulation';
+    const dateObj = fromISODate(d.date);
+    if (dateObj.toDateString() === todayStr) cls += ' today';
+    cell.className = cls;
+    cell.innerHTML = `<div class="date-num">${dateObj.getDate()}</div>${d.fertility > 0 ? `<div class="fert-pct">${d.fertility}%</div>` : ''}`;
+    grid.appendChild(cell);
+  });
+}
+
+$('month-prev').onclick = () => { cycleViewDate.setMonth(cycleViewDate.getMonth() - 1); loadCycleScreen(); };
+$('month-next').onclick = () => { cycleViewDate.setMonth(cycleViewDate.getMonth() + 1); loadCycleScreen(); };
+
+$('period-log-btn').onclick = () => {
+  const start = $('period-start').value;
+  const end = $('period-end').value || null;
+  if (!start) return;
+  periodLogs.unshift({ id: Date.now(), start, end });
+  persistPeriodLogs();
+  $('period-start').valueAsDate = new Date();
+  $('period-end').value = '';
+  cycleViewDate = new Date();
+  loadCycleScreen();
+  loadHistory();
+};
+
+$('settings-save-btn').onclick = () => {
+  settings.cycleLength = parseInt($('set-cycle-length').value, 10) || 28;
+  settings.periodLength = parseInt($('set-period-length').value, 10) || 5;
+  settings.autoCalculate = $('set-auto-calculate').checked;
+  persistSettings();
+  loadCycleScreen();
+};
+
+function loadPeriodSettingsUI() {
+  $('set-cycle-length').value = settings.cycleLength;
+  $('set-period-length').value = settings.periodLength;
+  $('set-auto-calculate').checked = settings.autoCalculate;
+}
+
+// ---- History ----
+function loadHistory() {
+  $('history-count').textContent = periodLogs.length;
+  const el = $('history-list');
+  const sorted = [...periodLogs].sort((a, b) => fromISODate(b.start) - fromISODate(a.start));
+  el.innerHTML = sorted.length ? '' : '<div class="empty-state">No periods logged yet.</div>';
+  sorted.forEach(l => {
+    const row = document.createElement('div');
+    row.className = 'history-row';
+    const endLabel = l.end ? ` – ${l.end}` : '';
+    row.innerHTML = `<div class="history-dates">${l.start}${endLabel}</div><div class="history-actions"><span class="del">Delete</span></div>`;
+    row.querySelector('.del').onclick = () => {
+      if (!confirm(`Delete period logged ${l.start}?`)) return;
+      periodLogs = periodLogs.filter(x => x.id !== l.id);
+      persistPeriodLogs();
+      loadHistory();
+      loadCycleScreen();
+    };
+    el.appendChild(row);
+  });
+}
+
+// ---- Import ----
+function parseImportText(text) {
+  text = text.trim();
+  if (!text) return [];
+  try {
+    const parsed = JSON.parse(text);
+    if (Array.isArray(parsed)) {
+      return parsed.map(e => ({ start: e.start_date || e.start, end: e.end_date || e.end || null })).filter(e => e.start);
+    }
+  } catch (e) { /* fall through to CSV */ }
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const entries = [];
+  for (const line of lines) {
+    const parts = line.split(',').map(p => p.trim());
+    if (!parts[0] || !/^\d{4}-\d{2}-\d{2}$/.test(parts[0])) continue;
+    entries.push({ start: parts[0], end: parts[1] && /^\d{4}-\d{2}-\d{2}$/.test(parts[1]) ? parts[1] : null });
+  }
+  return entries;
+}
+
+$('import-btn').onclick = () => {
+  const entries = parseImportText($('import-text').value);
+  const resultEl = $('import-result');
+  if (!entries.length) { resultEl.textContent = "Couldn't find any valid dates (expected YYYY-MM-DD)."; return; }
+  const existingStarts = new Set(periodLogs.map(l => l.start));
+  let imported = 0, skipped = 0;
+  entries.forEach((e, i) => {
+    if (existingStarts.has(e.start)) { skipped++; return; }
+    periodLogs.unshift({ id: Date.now() + i, start: e.start, end: e.end });
+    existingStarts.add(e.start);
+    imported++;
+  });
+  persistPeriodLogs();
+  resultEl.textContent = `Imported ${imported}, skipped ${skipped} duplicate(s).`;
+  $('import-text').value = '';
+  loadHistory();
+  loadCycleScreen();
+};
+
+// ============================================================
+// BBT (basal body temperature) tracking
+// ============================================================
+$('bbt-date').valueAsDate = new Date();
+
+function renderBbtChart() {
+  const wrap = $('bbt-chart-wrap');
+  const sorted = [...bbtLogs].sort((a, b) => fromISODate(a.date) - fromISODate(b.date));
+  const recent = sorted.slice(-30); // last 30 logged readings, regardless of gaps
+  if (recent.length < 2) {
+    wrap.innerHTML = `<div class="empty-state">Log at least 2 temperatures to see a chart.</div>`;
+    return;
+  }
+  const temps = recent.map(r => r.temp);
+  const minT = Math.min(...temps) - 0.15;
+  const maxT = Math.max(...temps) + 0.15;
+  const w = 320, h = 120, padL = 34, padR = 8, padT = 10, padB = 18;
+  const plotW = w - padL - padR, plotH = h - padT - padB;
+
+  const x = i => padL + (i / (recent.length - 1)) * plotW;
+  const y = t => padT + plotH - ((t - minT) / (maxT - minT)) * plotH;
+
+  const points = recent.map((r, i) => `${x(i)},${y(r.temp)}`).join(' ');
+  const dots = recent.map((r, i) => `<circle cx="${x(i)}" cy="${y(r.temp)}" r="2.5" fill="${C_TEAL}" />`).join('');
+
+  const midTemp = ((minT + maxT) / 2).toFixed(2);
+  const gridLines = `
+    <line x1="${padL}" y1="${padT}" x2="${w - padR}" y2="${padT}" stroke="${C_BORDER}" stroke-width="1" />
+    <line x1="${padL}" y1="${padT + plotH}" x2="${w - padR}" y2="${padT + plotH}" stroke="${C_BORDER}" stroke-width="1" />
+  `;
+  const labels = `
+    <text x="2" y="${padT + 4}" fill="${C_TEXTDIM}" font-size="9" font-family="monospace">${maxT.toFixed(2)}</text>
+    <text x="2" y="${padT + plotH + 4}" fill="${C_TEXTDIM}" font-size="9" font-family="monospace">${minT.toFixed(2)}</text>
+  `;
+
+  wrap.innerHTML = `
+    <svg class="bbt-svg-chart" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet">
+      ${gridLines}
+      ${labels}
+      <polyline points="${points}" fill="none" stroke="${C_TEAL}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" />
+      ${dots}
+    </svg>
+    <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-dim); font-family:'SF Mono', monospace; margin-top:2px;">
+      <span>${recent[0].date}</span><span>${recent[recent.length - 1].date}</span>
+    </div>
+  `;
+}
+const C_TEAL = '#4FA8A0', C_BORDER = '#262E3A', C_TEXTDIM = '#8B95A5';
+
+function renderBbtHistory() {
+  $('bbt-count').textContent = bbtLogs.length;
+  const el = $('bbt-history-list');
+  const sorted = [...bbtLogs].sort((a, b) => fromISODate(b.date) - fromISODate(a.date));
+  el.innerHTML = sorted.length ? '' : '<div class="empty-state">No temperatures logged yet.</div>';
+  sorted.forEach(r => {
+    const row = document.createElement('div');
+    row.className = 'history-row';
+    row.innerHTML = `<div class="history-dates">${r.date} — ${r.temp.toFixed(2)}°F</div><div class="history-actions"><span class="del">Delete</span></div>`;
+    row.querySelector('.del').onclick = () => {
+      if (!confirm(`Delete ${r.date} reading?`)) return;
+      bbtLogs = bbtLogs.filter(x => x.id !== r.id);
+      persistBbtLogs();
+      renderBbtChart();
+      renderBbtHistory();
+    };
+    el.appendChild(row);
+  });
+}
+
+$('bbt-log-btn').onclick = () => {
+  const date = $('bbt-date').value;
+  const temp = parseFloat($('bbt-temp').value);
+  if (!date || !temp || isNaN(temp)) return;
+  // Replace any existing reading for the same day instead of duplicating it.
+  bbtLogs = bbtLogs.filter(r => r.date !== date);
+  bbtLogs.push({ id: Date.now(), date, temp });
+  persistBbtLogs();
+  $('bbt-temp').value = '';
+  renderBbtChart();
+  renderBbtHistory();
+};
+
+// ============================================================
+// Chat (multi-provider: Gemini, OpenAI, Claude - calls the
+// chosen provider's API directly from the browser)
+// ============================================================
+const PROVIDER_INFO = {
+  gemini: {
+    label: 'Gemini',
+    placeholder: 'AIza...',
+    desc: "Google's free tier — no credit card needed. Get a key free at aistudio.google.com (click \"Get API key\").",
+  },
+  openai: {
+    label: 'OpenAI',
+    placeholder: 'sk-...',
+    desc: 'Paid per use (no free tier). Get a key at platform.openai.com (API keys section). Note: OpenAI may block direct browser requests on some accounts — if you hit a CORS error, this provider may not work from a phone browser without a backend.',
+  },
+  anthropic: {
+    label: 'Claude',
+    placeholder: 'sk-ant-...',
+    desc: 'Paid per use (no free tier). Get a key at console.anthropic.com (Settings → API Keys).',
+  },
+};
+
+let selectedProviderInForm = activeProvider || 'gemini';
+
+function renderProviderPills() {
+  document.querySelectorAll('.provider-pill').forEach(pill => {
+    pill.classList.toggle('active', pill.dataset.provider === selectedProviderInForm);
+  });
+  const info = PROVIDER_INFO[selectedProviderInForm];
+  $('provider-desc').textContent = info.desc;
+  $('api-key-input').placeholder = info.placeholder;
+  $('api-key-input').value = apiKeys[selectedProviderInForm] || '';
+}
+
+document.querySelectorAll('.provider-pill').forEach(pill => {
+  pill.onclick = () => {
+    selectedProviderInForm = pill.dataset.provider;
+    renderProviderPills();
+  };
+});
+
+function renderChatUI() {
+  const hasActiveKey = activeProvider && apiKeys[activeProvider];
+  $('chat-key-card').style.display = hasActiveKey ? 'none' : 'block';
+  $('chat-log').style.display = hasActiveKey ? 'flex' : 'none';
+  $('chat-input-row').style.display = hasActiveKey ? 'flex' : 'none';
+  $('provider-active-label').style.display = hasActiveKey ? 'block' : 'none';
+  if (hasActiveKey) {
+    $('provider-active-label').textContent = `Using ${PROVIDER_INFO[activeProvider].label} — tap to switch`;
+    renderChatHistory();
+  } else {
+    renderProviderPills();
+  }
+}
+
+$('provider-active-label').onclick = () => {
+  activeProvider = null;
+  persistProvider();
+  selectedProviderInForm = Object.keys(apiKeys).find(p => apiKeys[p]) || 'gemini';
+  renderChatUI();
+};
+
+$('save-key-btn').onclick = () => {
+  const v = $('api-key-input').value.trim();
+  if (!v) return;
+  apiKeys[selectedProviderInForm] = v;
+  activeProvider = selectedProviderInForm;
+  persistApiKeys();
+  persistProvider();
+  renderChatUI();
+};
+
+function renderChatHistory() {
+  const log = $('chat-log');
+  log.innerHTML = '';
+  if (!chatHistory.length) {
+    log.innerHTML = `<div class="empty-state">Say hello — this is your private AI chat.</div>`;
+    return;
+  }
+  chatHistory.forEach(m => appendMsg(m.role, m.content, false));
+  log.scrollTop = log.scrollHeight;
+}
+
+function appendMsg(role, content, scroll = true) {
+  const log = $('chat-log');
+  const empty = log.querySelector('.empty-state');
+  if (empty) empty.remove();
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  div.textContent = content;
+  log.appendChild(div);
+  if (scroll) log.scrollTop = log.scrollHeight;
+  return div;
+}
+
+$('chat-send').onclick = sendChat;
+$('chat-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
+
+const SYSTEM_PROMPT = "You are AVA, the user's personal home assistant, running as a self-hosted app on their phone. Be helpful, warm, and concise — this is a casual home assistant context. Keep responses reasonably short unless asked for detail, since this is a phone screen.";
+
+async function callGemini(key, history) {
+  const geminiContents = history.map(m => ({
+    role: m.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: m.content }],
+  }));
+  const res = await fetch(
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: geminiContents,
+      }),
+    }
+  );
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => ({}));
+    throw new Error((errBody && errBody.error && errBody.error.message) || `Request failed (${res.status})`);
+  }
+  const data = await res.json();
+  const candidate = (data.candidates || [])[0];
+  return candidate ? (candidate.content.parts || []).map(p => p.text || '').join('') : "Gemini didn't return a response — try rephrasing.";
+}
+
+async function callOpenAI(key, history) {
+  const messages = [{ role: 'system', content: SYSTEM_PROMPT }, ...history];
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+    body: JSON.stringify({ model: 'gpt-4o-mini', messages }),
+  });
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => ({}));
+    throw new Error((errBody && errBody.error && errBody.error.message) || `Request failed (${res.status}). OpenAI may be blocking direct browser requests on this account.`);
+  }
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content || "OpenAI didn't return a response — try rephrasing.";
+}
+
+async function callAnthropic(key, history) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1024, system: SYSTEM_PROMPT, messages: history }),
+  });
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => ({}));
+    throw new Error((errBody && errBody.error && errBody.error.message) || `Request failed (${res.status})`);
+  }
+  const data = await res.json();
+  return (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+}
+
+async function sendChat() {
+  const input = $('chat-input');
+  const text = input.value.trim();
+  if (!text || !activeProvider || !apiKeys[activeProvider]) return;
+  input.value = '';
+  chatHistory.push({ role: 'user', content: text });
+  persistChat();
+  appendMsg('user', text);
+
+  const log = $('chat-log');
+  const typing = document.createElement('div');
+  typing.className = 'msg assistant';
+  typing.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+  log.appendChild(typing);
+  log.scrollTop = log.scrollHeight;
+
+  try {
+    const key = apiKeys[activeProvider];
+    let replyText;
+    if (activeProvider === 'gemini') replyText = await callGemini(key, chatHistory);
+    else if (activeProvider === 'openai') replyText = await callOpenAI(key, chatHistory);
+    else if (activeProvider === 'anthropic') replyText = await callAnthropic(key, chatHistory);
+    else throw new Error('Unknown provider.');
+
+    chatHistory.push({ role: 'assistant', content: replyText });
+    persistChat();
+    typing.remove();
+    appendMsg('assistant', replyText);
+  } catch (e) {
+    typing.remove();
+    appendMsg('error', e.message || `Something went wrong reaching ${PROVIDER_INFO[activeProvider].label}.`);
+  }
+}
+
+// ============================================================
+// Notes
+// ============================================================
+function renderNotes(filter = '') {
+  const list = $('notes-list');
+  const q = filter.trim().toLowerCase();
+  const filtered = q ? notes.filter(n => n.text.toLowerCase().includes(q)) : notes;
+  const sorted = [...filtered].sort((a, b) => b.createdAt - a.createdAt);
+  list.innerHTML = '';
+  if (!sorted.length) {
+    list.innerHTML = `<div class="empty-state">${q ? 'No notes match your search.' : 'No notes yet. Write your first one above.'}</div>`;
+    return;
+  }
+  sorted.forEach(n => {
+    const card = document.createElement('div');
+    card.className = 'note-card';
+    const dateLabel = new Date(n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    card.innerHTML = `<div class="note-text">${escapeHtml(n.text)}</div><div class="note-meta"><div class="note-date">${dateLabel}</div><div class="note-del">Delete</div></div>`;
+    card.querySelector('.note-del').onclick = () => {
+      if (!confirm('Delete this note?')) return;
+      notes = notes.filter(x => x.id !== n.id);
+      persistNotes();
+      renderNotes($('notes-search').value);
+    };
+    list.appendChild(card);
+  });
+}
+
+$('note-add').onclick = () => {
+  const ta = $('note-input');
+  const text = ta.value.trim();
+  if (!text) return;
+  notes.unshift({ id: Date.now(), text, createdAt: Date.now() });
+  persistNotes();
+  ta.value = '';
+  renderNotes($('notes-search').value);
+};
+
+$('notes-search').addEventListener('input', e => renderNotes(e.target.value));
+
+// ============================================================
+// Books
+// ============================================================
+let bookStatusFilter = 'want';
+
+document.querySelectorAll('#book-status-filter .provider-pill').forEach(pill => {
+  pill.onclick = () => {
+    bookStatusFilter = pill.dataset.status;
+    document.querySelectorAll('#book-status-filter .provider-pill').forEach(p => p.classList.toggle('active', p === pill));
+    renderBooks();
+  };
+});
+
+$('book-add').onclick = () => {
+  const title = $('book-title-input').value.trim();
+  const author = $('book-author-input').value.trim();
+  if (!title) return;
+  books.unshift({ id: Date.now(), title, author, status: 'want', notes: '', createdAt: Date.now() });
+  persistBooks();
+  $('book-title-input').value = '';
+  $('book-author-input').value = '';
+  bookStatusFilter = 'want';
+  document.querySelectorAll('#book-status-filter .provider-pill').forEach(p => p.classList.toggle('active', p.dataset.status === 'want'));
+  renderBooks();
+};
+
+const BOOK_STATUS_LABELS = { want: 'Want to read', reading: 'Reading', finished: 'Finished' };
+
+function renderBooks() {
+  const list = $('books-list');
+  const filtered = books.filter(b => b.status === bookStatusFilter);
+  list.innerHTML = '';
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state">No books in "${BOOK_STATUS_LABELS[bookStatusFilter]}" yet.</div>`;
+    return;
+  }
+  filtered.forEach(b => {
+    const card = document.createElement('div');
+    card.className = 'book-card';
+    const statusBtns = Object.keys(BOOK_STATUS_LABELS).map(s =>
+      `<div class="book-status-btn ${s === b.status ? 'active' : ''}" data-status="${s}">${BOOK_STATUS_LABELS[s]}</div>`
+    ).join('');
+    card.innerHTML = `
+      <div class="book-title">${escapeHtml(b.title)}</div>
+      ${b.author ? `<div class="book-author">${escapeHtml(b.author)}</div>` : ''}
+      <div class="book-status-row">${statusBtns}</div>
+      <div class="book-notes"><textarea placeholder="Notes, thoughts, quotes...">${escapeHtml(b.notes || '')}</textarea></div>
+      <div class="book-del">Remove book</div>
+    `;
+    card.querySelectorAll('.book-status-btn').forEach(btn => {
+      btn.onclick = () => {
+        b.status = btn.dataset.status;
+        persistBooks();
+        renderBooks();
+      };
+    });
+    const ta = card.querySelector('textarea');
+    ta.addEventListener('blur', () => {
+      b.notes = ta.value;
+      persistBooks();
+    });
+    card.querySelector('.book-del').onclick = () => {
+      if (!confirm(`Remove "${b.title}" from your list?`)) return;
+      books = books.filter(x => x.id !== b.id);
+      persistBooks();
+      renderBooks();
+    };
+    list.appendChild(card);
+  });
+}
+
+// ============================================================
+// Calendar
+// ============================================================
+let calViewDate = new Date();
+let calSelectedDate = toISODate(new Date());
+
+function renderCalendarScreen() {
+  $('cal-month-label').textContent = calViewDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const year = calViewDate.getFullYear();
+  const month = calViewDate.getMonth() + 1;
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const firstDayOffset = new Date(year, month - 1, 1).getDay();
+  const todayIso = toISODate(new Date());
+
+  const eventDates = new Set(events.map(e => e.date));
+
+  const grid = $('event-calendar-grid');
+  grid.innerHTML = '';
+  ['S','M','T','W','T','F','S'].forEach(d => {
+    const lbl = document.createElement('div');
+    lbl.className = 'cal-day-label';
+    lbl.textContent = d;
+    grid.appendChild(lbl);
+  });
+  for (let i = 0; i < firstDayOffset; i++) {
+    const empty = document.createElement('div');
+    empty.className = 'cal-day empty';
+    grid.appendChild(empty);
+  }
+  for (let day = 1; day <= daysInMonth; day++) {
+    const iso = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const cell = document.createElement('div');
+    let cls = 'cal-day';
+    if (iso === todayIso) cls += ' today';
+    if (iso === calSelectedDate) cls += ' ovulation';
+    cell.className = cls;
+    cell.innerHTML = `<div class="date-num">${day}</div>${eventDates.has(iso) ? `<div class="fert-pct" style="color:var(--amber);">•</div>` : ''}`;
+    cell.onclick = () => { calSelectedDate = iso; renderCalendarScreen(); };
+    grid.appendChild(cell);
+  }
+
+  // Stats: events this month + next upcoming event
+  const thisMonthEvents = events.filter(e => e.date.startsWith(`${year}-${String(month).padStart(2,'0')}`));
+  const upcoming = events.filter(e => e.date >= todayIso).sort((a,b) => a.date.localeCompare(b.date))[0];
+  $('cal-stats').innerHTML = `
+    <div class="stat-box"><div class="stat-label">This month</div><div class="stat-value">${thisMonthEvents.length} event${thisMonthEvents.length===1?'':'s'}</div></div>
+    <div class="stat-box"><div class="stat-label">Next up</div><div class="stat-value teal" style="font-size:14px;">${upcoming ? upcoming.title : '—'}</div></div>
+  `;
+
+  renderDayEvents();
+}
+
+function renderDayEvents() {
+  const list = $('day-events-list');
+  const dayEvents = events.filter(e => e.date === calSelectedDate).sort((a,b) => (a.time||'').localeCompare(b.time||''));
+  const label = fromISODate(calSelectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  list.innerHTML = `<div class="section-link">${label}</div>`;
+  if (!dayEvents.length) {
+    list.innerHTML += `<div class="card empty-state">No events this day.</div>`;
+    return;
+  }
+  dayEvents.forEach(e => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="card-row">
+        <div>
+          <div style="font-weight:600; font-size:14px;">${escapeHtml(e.title)}</div>
+          ${e.time ? `<div style="font-size:11px; color:var(--text-dim); font-family:'SF Mono', monospace; margin-top:2px;">${e.time}</div>` : ''}
+        </div>
+        <div class="book-del" style="margin-top:0;">Delete</div>
+      </div>
+    `;
+    card.querySelector('.book-del').onclick = () => {
+      events = events.filter(x => x.id !== e.id);
+      persistEvents();
+      renderCalendarScreen();
+    };
+    list.appendChild(card);
+  });
+}
+
+$('cal-month-prev').onclick = () => { calViewDate.setMonth(calViewDate.getMonth() - 1); renderCalendarScreen(); };
+$('cal-month-next').onclick = () => { calViewDate.setMonth(calViewDate.getMonth() + 1); renderCalendarScreen(); };
+$('event-date-input').valueAsDate = new Date();
+
+$('event-add-btn').onclick = () => {
+  const title = $('event-title-input').value.trim();
+  const date = $('event-date-input').value;
+  const time = $('event-time-input').value || null;
+  if (!title || !date) return;
+  events.push({ id: Date.now(), title, date, time });
+  persistEvents();
+  $('event-title-input').value = '';
+  $('event-time-input').value = '';
+  calSelectedDate = date;
+  if (fromISODate(date).getMonth() !== calViewDate.getMonth() || fromISODate(date).getFullYear() !== calViewDate.getFullYear()) {
+    calViewDate = fromISODate(date);
+  }
+  renderCalendarScreen();
+};
+
+// ============================================================
+// Movies & TV
+// ============================================================
+let movieStatusFilter = 'watchlist';
+
+document.querySelectorAll('#movie-status-filter .provider-pill').forEach(pill => {
+  pill.onclick = () => {
+    movieStatusFilter = pill.dataset.status;
+    document.querySelectorAll('#movie-status-filter .provider-pill').forEach(p => p.classList.toggle('active', p === pill));
+    renderMovies();
+  };
+});
+
+$('movie-add').onclick = () => {
+  const title = $('movie-title-input').value.trim();
+  const type = $('movie-type-input').value;
+  if (!title) return;
+  movies.unshift({ id: Date.now(), title, type, status: 'watchlist', rating: null, createdAt: Date.now() });
+  persistMovies();
+  $('movie-title-input').value = '';
+  movieStatusFilter = 'watchlist';
+  document.querySelectorAll('#movie-status-filter .provider-pill').forEach(p => p.classList.toggle('active', p.dataset.status === 'watchlist'));
+  renderMovies();
+};
+
+function starRow(currentRating, onRate) {
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex; gap:4px; margin-top:8px;';
+  for (let i = 1; i <= 5; i++) {
+    const star = document.createElement('span');
+    star.textContent = i <= (currentRating || 0) ? '★' : '☆';
+    star.style.cssText = `font-size:18px; cursor:pointer; color:${i <= (currentRating || 0) ? 'var(--amber)' : 'var(--text-dim)'};`;
+    star.onclick = () => onRate(i);
+    wrap.appendChild(star);
+  }
+  return wrap;
+}
+
+function renderMovies() {
+  const list = $('movies-list');
+  const filtered = movies.filter(m => m.status === movieStatusFilter);
+  list.innerHTML = '';
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state">Nothing in ${movieStatusFilter === 'watchlist' ? 'your watchlist' : 'watched'} yet.</div>`;
+    return;
+  }
+  filtered.forEach(m => {
+    const card = document.createElement('div');
+    card.className = 'book-card';
+    card.innerHTML = `
+      <div class="book-title">${escapeHtml(m.title)}</div>
+      <div class="book-author">${m.type === 'tv' ? 'TV Show' : 'Movie'}</div>
+      <div class="book-status-row">
+        <div class="book-status-btn ${m.status === 'watchlist' ? 'active' : ''}" data-status="watchlist">Watchlist</div>
+        <div class="book-status-btn ${m.status === 'watched' ? 'active' : ''}" data-status="watched">Watched</div>
+      </div>
+    `;
+    if (m.status === 'watched') {
+      const ratingWrap = starRow(m.rating, (r) => { m.rating = r; persistMovies(); renderMovies(); });
+      card.appendChild(ratingWrap);
+    }
+    const delLink = document.createElement('div');
+    delLink.className = 'book-del';
+    delLink.textContent = 'Remove';
+    delLink.onclick = () => {
+      if (!confirm(`Remove "${m.title}"?`)) return;
+      movies = movies.filter(x => x.id !== m.id);
+      persistMovies();
+      renderMovies();
+    };
+    card.appendChild(delLink);
+    card.querySelectorAll('.book-status-btn').forEach(btn => {
+      btn.onclick = () => { m.status = btn.dataset.status; persistMovies(); renderMovies(); };
+    });
+    list.appendChild(card);
+  });
+}
+
+// ============================================================
+// Games (with free live PC pricing via CheapShark, no API key)
+// ============================================================
+let gameStatusFilter = 'want';
+
+document.querySelectorAll('#game-status-filter .provider-pill').forEach(pill => {
+  pill.onclick = () => {
+    gameStatusFilter = pill.dataset.status;
+    document.querySelectorAll('#game-status-filter .provider-pill').forEach(p => p.classList.toggle('active', p === pill));
+    renderGames();
+  };
+});
+
+$('game-platform-input').addEventListener('change', () => {
+  const isPc = $('game-platform-input').value === 'pc';
+  $('game-manual-price-row').style.display = isPc ? 'none' : 'flex';
+  $('game-price-status').textContent = isPc ? 'Price will be looked up automatically from Steam/PC stores when added.' : '';
+});
+
+async function fetchCheapSharkPrice(title) {
+  try {
+    const res = await fetch(`https://www.cheapshark.com/api/1.0/deals?title=${encodeURIComponent(title)}&limit=1&sortBy=Price`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data || !data.length) return null;
+    return { price: parseFloat(data[0].salePrice), matchedTitle: data[0].title };
+  } catch (e) {
+    return null;
+  }
+}
+
+$('game-add').onclick = async () => {
+  const title = $('game-title-input').value.trim();
+  const platform = $('game-platform-input').value;
+  if (!title) return;
+  const manualPrice = parseFloat($('game-price-input').value);
+
+  const entry = { id: Date.now(), title, platform, status: 'want', rating: null, price: null, priceSource: 'none', createdAt: Date.now() };
+
+  if (platform === 'pc') {
+    $('game-price-status').textContent = 'Looking up price…';
+    const result = await fetchCheapSharkPrice(title);
+    if (result) {
+      entry.price = result.price;
+      entry.priceSource = 'live';
+      $('game-price-status').textContent = `Found: $${result.price.toFixed(2)} (matched "${result.matchedTitle}")`;
+    } else {
+      entry.priceSource = 'unavailable';
+      $('game-price-status').textContent = "Couldn't find a price automatically — you can add it manually by editing later.";
+    }
+  } else if (!isNaN(manualPrice)) {
+    entry.price = manualPrice;
+    entry.priceSource = 'manual';
+  }
+
+  games.unshift(entry);
+  persistGames();
+  $('game-title-input').value = '';
+  $('game-price-input').value = '';
+  gameStatusFilter = 'want';
+  document.querySelectorAll('#game-status-filter .provider-pill').forEach(p => p.classList.toggle('active', p.dataset.status === 'want'));
+  renderGames();
+};
+
+const PLATFORM_LABELS = { pc: 'PC', playstation: 'PlayStation', xbox: 'Xbox', switch: 'Switch', other: 'Other' };
+const GAME_STATUS_LABELS = { want: 'Want to play', playing: 'Playing', beaten: 'Beaten' };
+
+function renderGames() {
+  const list = $('games-list');
+  const filtered = games.filter(g => g.status === gameStatusFilter);
+  list.innerHTML = '';
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state">No games in "${GAME_STATUS_LABELS[gameStatusFilter]}" yet.</div>`;
+    return;
+  }
+  filtered.forEach(g => {
+    const card = document.createElement('div');
+    card.className = 'book-card';
+    let priceLabel = '';
+    if (g.price != null) {
+      const sourceLabel = g.priceSource === 'live' ? ' (live)' : g.priceSource === 'manual' ? ' (manual)' : '';
+      priceLabel = `<div class="book-author">$${g.price.toFixed(2)}${sourceLabel}</div>`;
+    } else if (g.priceSource === 'unavailable') {
+      priceLabel = `<div class="book-author">Price not found</div>`;
+    }
+    card.innerHTML = `
+      <div class="book-title">${escapeHtml(g.title)}</div>
+      <div class="book-author">${PLATFORM_LABELS[g.platform]}</div>
+      ${priceLabel}
+      <div class="book-status-row">
+        <div class="book-status-btn ${g.status === 'want' ? 'active' : ''}" data-status="want">Want to play</div>
+        <div class="book-status-btn ${g.status === 'playing' ? 'active' : ''}" data-status="playing">Playing</div>
+        <div class="book-status-btn ${g.status === 'beaten' ? 'active' : ''}" data-status="beaten">Beaten</div>
+      </div>
+    `;
+    if (g.status === 'beaten') {
+      const ratingWrap = starRow(g.rating, (r) => { g.rating = r; persistGames(); renderGames(); });
+      card.appendChild(ratingWrap);
+    }
+    const delLink = document.createElement('div');
+    delLink.className = 'book-del';
+    delLink.textContent = 'Remove';
+    delLink.onclick = () => {
+      if (!confirm(`Remove "${g.title}"?`)) return;
+      games = games.filter(x => x.id !== g.id);
+      persistGames();
+      renderGames();
+    };
+    card.appendChild(delLink);
+    card.querySelectorAll('.book-status-btn').forEach(btn => {
+      btn.onclick = () => { g.status = btn.dataset.status; persistGames(); renderGames(); };
+    });
+    list.appendChild(card);
+  });
+}
+
+// ============================================================
+// Finance: expenses, budgets, goals
+// ============================================================
+function populateCategoryDropdowns() {
+  [$('expense-category-input'), $('budget-category-input')].forEach(sel => {
+    sel.innerHTML = EXPENSE_CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('');
+  });
+}
+populateCategoryDropdowns();
+
+let financeView = 'expenses';
+document.querySelectorAll('#finance-view-filter .provider-pill').forEach(pill => {
+  pill.onclick = () => {
+    financeView = pill.dataset.view;
+    document.querySelectorAll('#finance-view-filter .provider-pill').forEach(p => p.classList.toggle('active', p === pill));
+    $('finance-expenses-view').style.display = financeView === 'expenses' ? 'block' : 'none';
+    $('finance-budgets-view').style.display = financeView === 'budgets' ? 'block' : 'none';
+    $('finance-goals-view').style.display = financeView === 'goals' ? 'block' : 'none';
+    if (financeView === 'budgets') renderBudgets();
+    if (financeView === 'goals') renderGoals();
+  };
+});
+
+$('expense-add-btn').onclick = () => {
+  const amount = parseFloat($('expense-amount-input').value);
+  const category = $('expense-category-input').value;
+  const note = $('expense-note-input').value.trim();
+  if (!amount || isNaN(amount)) return;
+  expenses.unshift({ id: Date.now(), amount, category, note, date: toISODate(new Date()) });
+  persistExpenses();
+  $('expense-amount-input').value = '';
+  $('expense-note-input').value = '';
+  renderExpenses();
+};
+
+function currentMonthExpenses() {
+  const now = new Date();
+  const prefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2,'0')}`;
+  return expenses.filter(e => e.date.startsWith(prefix));
+}
+
+function renderExpenses() {
+  const monthExpenses = currentMonthExpenses();
+  const total = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
+  $('finance-month-stats').innerHTML = `
+    <div class="stat-box"><div class="stat-label">This month</div><div class="stat-value rose">$${total.toFixed(2)}</div></div>
+    <div class="stat-box"><div class="stat-label">Logged</div><div class="stat-value">${monthExpenses.length}</div></div>
+  `;
+  const list = $('expenses-list');
+  const sorted = [...expenses].sort((a,b) => b.id - a.id).slice(0, 50);
+  list.innerHTML = '';
+  if (!sorted.length) {
+    list.innerHTML = `<div class="empty-state">No expenses logged yet.</div>`;
+    return;
+  }
+  sorted.forEach(e => {
+    const row = document.createElement('div');
+    row.className = 'history-row';
+    row.innerHTML = `<div class="history-dates">${e.date} — ${e.category}${e.note ? ' · ' + escapeHtml(e.note) : ''}</div><div style="display:flex; align-items:center; gap:10px;"><span style="font-weight:600;">$${e.amount.toFixed(2)}</span><span class="note-del" style="cursor:pointer; color:var(--text-dim); font-size:12px;">✕</span></div>`;
+    row.querySelector('.note-del').onclick = () => {
+      expenses = expenses.filter(x => x.id !== e.id);
+      persistExpenses();
+      renderExpenses();
+    };
+    list.appendChild(row);
+  });
+}
+
+$('budget-set-btn').onclick = () => {
+  const category = $('budget-category-input').value;
+  const limit = parseFloat($('budget-limit-input').value);
+  if (!limit || isNaN(limit)) return;
+  budgets[category] = limit;
+  persistBudgets();
+  $('budget-limit-input').value = '';
+  renderBudgets();
+};
+
+function renderBudgets() {
+  const monthExpenses = currentMonthExpenses();
+  const spentByCategory = {};
+  monthExpenses.forEach(e => { spentByCategory[e.category] = (spentByCategory[e.category] || 0) + e.amount; });
+
+  const list = $('budgets-list');
+  const categoriesWithBudgets = Object.keys(budgets);
+  list.innerHTML = '';
+  if (!categoriesWithBudgets.length) {
+    list.innerHTML = `<div class="empty-state">No budgets set yet.</div>`;
+    return;
+  }
+  categoriesWithBudgets.forEach(cat => {
+    const limit = budgets[cat];
+    const spent = spentByCategory[cat] || 0;
+    const pct = Math.min(100, Math.round((spent / limit) * 100));
+    const over = spent > limit;
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="card-row">
+        <div style="font-weight:600; font-size:14px;">${cat}</div>
+        <div style="font-size:13px; color:${over ? 'var(--danger)' : 'var(--text-dim)'};">$${spent.toFixed(2)} / $${limit.toFixed(2)}</div>
+      </div>
+      <div style="background:var(--surface-2); border-radius:6px; height:8px; margin-top:10px; overflow:hidden;">
+        <div style="background:${over ? 'var(--danger)' : 'var(--teal)'}; height:100%; width:${pct}%;"></div>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+$('goal-add-btn').onclick = () => {
+  const name = $('goal-name-input').value.trim();
+  const target = parseFloat($('goal-target-input').value);
+  const current = parseFloat($('goal-current-input').value) || 0;
+  if (!name || !target || isNaN(target)) return;
+  goals.unshift({ id: Date.now(), name, target, current });
+  persistGoals();
+  $('goal-name-input').value = '';
+  $('goal-target-input').value = '';
+  $('goal-current-input').value = '';
+  renderGoals();
+};
+
+function renderGoals() {
+  const list = $('goals-list');
+  list.innerHTML = '';
+  if (!goals.length) {
+    list.innerHTML = `<div class="empty-state">No savings goals yet.</div>`;
+    return;
+  }
+  goals.forEach(g => {
+    const pct = Math.min(100, Math.round((g.current / g.target) * 100));
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="card-row">
+        <div style="font-weight:600; font-size:14px;">${escapeHtml(g.name)}</div>
+        <div class="book-del" style="margin-top:0;">Delete</div>
+      </div>
+      <div style="font-size:13px; color:var(--text-dim); margin-top:4px;">$${g.current.toFixed(2)} of $${g.target.toFixed(2)} (${pct}%)</div>
+      <div style="background:var(--surface-2); border-radius:6px; height:8px; margin-top:10px; overflow:hidden;">
+        <div style="background:var(--teal); height:100%; width:${pct}%;"></div>
+      </div>
+      <div class="field-row" style="margin-top:12px;">
+        <input type="number" step="1" placeholder="Add amount" class="goal-add-amount" style="flex:1;">
+        <button class="primary goal-add-amount-btn" style="padding:10px 14px;">Add</button>
+      </div>
+    `;
+    card.querySelector('.book-del').onclick = () => {
+      if (!confirm(`Delete goal "${g.name}"?`)) return;
+      goals = goals.filter(x => x.id !== g.id);
+      persistGoals();
+      renderGoals();
+    };
+    card.querySelector('.goal-add-amount-btn').onclick = () => {
+      const input = card.querySelector('.goal-add-amount');
+      const amt = parseFloat(input.value);
+      if (!amt || isNaN(amt)) return;
+      g.current += amt;
+      persistGoals();
+      renderGoals();
+    };
+    list.appendChild(card);
+  });
+}
+
+// ============================================================
+// Boot
+// ============================================================
+$('period-start').valueAsDate = new Date();
+renderTodos();
+renderChatUI();
+loadPeriodSettingsUI();
+loadCycleScreen();
+loadHistory();
+renderNotes();
+renderBbtChart();
+renderBbtHistory();
+renderBooks();
+renderCalendarScreen();
+renderMovies();
+renderGames();
+renderExpenses();
+$('game-platform-input').dispatchEvent(new Event('change'));
+
+// ── Storage: migrate localStorage → IndexedDB, then render summary ──
+migrateFromLocalStorage().then(() => {
+  renderStorageSummary();
+});
+
+function renderStorageSummary() {
+  const summary = $('storage-summary');
+  if (!summary) return;
+  const counts = [
+    ['Period logs', periodLogs.length],
+    ['BBT readings', bbtLogs.length],
+    ['Notes', notes.length],
+    ['Tasks', todos.length],
+    ['Books', books.length],
+    ['Movies', movies.length],
+    ['Games', games.length],
+    ['Expenses', expenses.length],
+    ['Events', events.length],
+    ['Goals', goals.length],
+  ].filter(([, n]) => n > 0);
+  summary.innerHTML = counts.length
+    ? counts.map(([label, n]) => `<span style="margin-right:14px;">${label}: <strong style="color:var(--text)">${n}</strong></span>`).join('')
+    : '<span style="color:var(--text-dim)">No data yet — start tracking!</span>';
+}
+
+// Refresh summary whenever data changes
+const _origSaveJSON = saveJSON;
+// Debounced summary refresh after any save
+let _summaryTimer;
+function saveJSON(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+  idbSet(key, value).catch(() => {});
+  clearTimeout(_summaryTimer);
+  _summaryTimer = setTimeout(renderStorageSummary, 500);
+}
+
+// ── Export all data as a timestamped JSON backup ──
+$('export-btn').onclick = async () => {
+  const all = await idbGetAll();
+  // Also grab from localStorage as safety net
+  Object.values(StorageKeys).forEach(k => {
+    if (!(k in all)) {
+      try { const v = localStorage.getItem(k); if (v) all[k] = JSON.parse(v); } catch (_) {}
+    }
+  });
+  const blob = new Blob([JSON.stringify({ _ava_backup: true, _version: 1, _exported: new Date().toISOString(), data: all }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `ava-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  $('storage-status').textContent = '● EXPORTED';
+  setTimeout(() => $('storage-status').textContent = '● SAVED', 3000);
+};
+
+// ── Import/restore from a backup file ──
+$('import-backup-btn').onclick = () => $('import-backup-file').click();
+$('import-backup-file').onchange = async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const result = $('import-backup-result');
+  try {
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+    const data = parsed._ava_backup ? parsed.data : parsed;
+    let count = 0;
+    for (const [key, value] of Object.entries(data)) {
+      await idbSet(key, value);
+      try { localStorage.setItem(key, JSON.stringify(value)); } catch (_) {}
+      count++;
+    }
+    // Reload all in-memory data
+    todos       = loadJSON(StorageKeys.todos, []);
+    periodLogs  = loadJSON(StorageKeys.periodLogs, []);
+    settings    = loadJSON(StorageKeys.settings, { cycleLength: 28, periodLength: 5, lutealLength: 14, autoCalculate: true });
+    chatHistory = loadJSON(StorageKeys.chat, []);
+    notes       = loadJSON(StorageKeys.notes, []);
+    bbtLogs     = loadJSON(StorageKeys.bbtLogs, []);
+    books       = loadJSON(StorageKeys.books, []);
+    events      = loadJSON(StorageKeys.events, []);
+    movies      = loadJSON(StorageKeys.movies, []);
+    games       = loadJSON(StorageKeys.games, []);
+    expenses    = loadJSON(StorageKeys.expenses, []);
+    budgets     = loadJSON(StorageKeys.budgets, {});
+    goals       = loadJSON(StorageKeys.goals, []);
+    // Re-render everything
+    renderTodos(); renderNotes(); renderBooks(); renderMovies();
+    renderGames(); renderExpenses(); renderStorageSummary();
+    result.style.color = 'var(--accent)';
+    result.textContent = `✓ Restored ${count} data stores successfully.`;
+  } catch (err) {
+    result.style.color = 'var(--danger)';
+    result.textContent = '✗ Could not read backup file. Is it a valid AVA backup?';
+  }
+  e.target.value = '';
+};
+
+// ── AVA Orb: drag + glow trail ──
+(function() {
+  const orb = document.getElementById('chat-orb');
+  if (!orb) return;
+  let dragging = false, ox = 0, oy = 0;
+
+  orb.addEventListener('mousedown', e => {
+    dragging = true;
+    ox = e.clientX - orb.getBoundingClientRect().left;
+    oy = e.clientY - orb.getBoundingClientRect().top;
+    orb.style.animation = 'none';
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    orb.style.left = (e.clientX - ox) + 'px';
+    orb.style.top  = (e.clientY - oy) + 'px';
+    orb.style.right = 'auto';
+    orb.style.bottom = 'auto';
+    spawnTrail(e.clientX, e.clientY);
+  });
+  document.addEventListener('mouseup', () => { dragging = false; orb.style.animation = ''; });
+
+  orb.addEventListener('touchstart', e => {
+    dragging = true;
+    const t = e.touches[0];
+    ox = t.clientX - orb.getBoundingClientRect().left;
+    oy = t.clientY - orb.getBoundingClientRect().top;
+    orb.style.animation = 'none';
+  }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    const t = e.touches[0];
+    orb.style.left = (t.clientX - ox) + 'px';
+    orb.style.top  = (t.clientY - oy) + 'px';
+    orb.style.right = 'auto';
+    orb.style.bottom = 'auto';
+    spawnTrail(t.clientX, t.clientY);
+  }, { passive: true });
+  document.addEventListener('touchend', () => { dragging = false; orb.style.animation = ''; });
+
+  function spawnTrail(x, y) {
+    const t = document.createElement('div');
+    t.className = 'trail';
+    t.style.left = (x - 22) + 'px';
+    t.style.top  = (y - 22) + 'px';
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 800);
+  }
+
+  // Click orb → jump to chat tab
+  orb.addEventListener('click', e => {
+    if (dragging) return;
+    switchScreen('chat');
+  });
+})();
+</script>
+
+</body>
+</html>

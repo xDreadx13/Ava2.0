@@ -20,7 +20,25 @@
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bottom: env(safe-area-inset-bottom, 0px);
     --accent: #00ffc6; --accent-glow: rgba(0,255,198,0.25);
+    --accent-dark: #00bfa5; --accent-darker: #004d40;
+    /* Per-section accents — default to the global accent, overridable per user. */
+    --sec-cycle: #ff4081; --sec-cycle-dim: rgba(255,64,129,0.15);
+    --sec-todos: var(--accent); --sec-notes: var(--accent); --sec-books: var(--accent);
+    --sec-movies: var(--accent); --sec-games: var(--accent); --sec-finance: var(--accent);
+    --sec-calendar: var(--accent); --sec-chat: var(--accent);
   }
+  /* Each screen re-scopes --accent to its own section color, so every
+     button/highlight/glow inside automatically follows that section's
+     color without needing per-component overrides. Home & Chat stay
+     on the global accent. */
+  #cycle-screen    { --accent: var(--sec-cycle);    --accent-glow: var(--sec-cycle-dim); }
+  #todos-screen    { --accent: var(--sec-todos); }
+  #notes-screen    { --accent: var(--sec-notes); }
+  #books-screen    { --accent: var(--sec-books); }
+  #movies-screen   { --accent: var(--sec-movies); }
+  #games-screen    { --accent: var(--sec-games); }
+  #finance-screen  { --accent: var(--sec-finance); }
+  #calendar-screen { --accent: var(--sec-calendar); }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   html, body { background: var(--bg); color: var(--text); font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; overscroll-behavior-y: none; }
   body {
@@ -43,7 +61,7 @@
   .stat-box { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
   .stat-label { font-family: 'SF Mono', monospace; font-size: 9px; color: var(--text-dim); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
   .stat-value { font-size: 19px; font-weight: 700; }
-  .stat-value.rose { color: var(--rose); }
+  .stat-value.rose { color: var(--sec-cycle); }
   .stat-value.teal { color: var(--teal); }
   .section-link { font-size: 13px; color: var(--text-dim); margin: 18px 2px 8px; }
   .todo-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 15px; }
@@ -81,9 +99,9 @@
   .cal-day { aspect-ratio: 1; border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; position: relative; background: var(--surface-2); }
   .cal-day .date-num { font-weight: 600; }
   .cal-day .fert-pct { font-size: 8px; color: var(--text-dim); font-family: 'SF Mono', monospace; margin-top: 1px; }
-  .cal-day.period { background: var(--rose-dim); border-color: var(--rose); }
-  .cal-day.predicted-period { border-color: var(--rose); border-style: dashed; }
-  .cal-day.ovulation { border-color: var(--amber); box-shadow: 0 0 0 1px var(--amber); }
+  .cal-day.period { background: var(--sec-cycle-dim); border-color: var(--sec-cycle); }
+  .cal-day.predicted-period { border-color: var(--sec-cycle); border-style: dashed; }
+  .cal-day.ovulation { border-color: var(--sec-cycle); box-shadow: 0 0 0 1px var(--sec-cycle); }
   .cal-day.today { outline: 2px solid var(--teal); outline-offset: 1px; }
   .cal-day.empty { visibility: hidden; }
   .legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 14px; font-size: 10px; color: var(--text-dim); }
@@ -155,19 +173,19 @@
   /* ── Floating AVA orb ── */
   #chat-orb {
     position: fixed; bottom: 40px; right: 40px; width: 70px; height: 70px; border-radius: 50%;
-    background: radial-gradient(circle at 30% 30%, #00ffc6, #00bfa5 70%, #004d40 100%);
-    box-shadow: 0 0 25px #00ffc6, 0 0 60px #00ffc6, inset 0 0 10px rgba(255,255,255,0.2);
+    background: radial-gradient(circle at 30% 30%, var(--accent), var(--accent-dark) 70%, var(--accent-darker) 100%);
+    box-shadow: 0 0 25px var(--accent), 0 0 60px var(--accent), inset 0 0 10px rgba(255,255,255,0.2);
     display: flex; align-items: center; justify-content: center; font-size: 1.8rem;
     cursor: grab; user-select: none;
     animation: floaty 3s ease-in-out infinite, shimmer 4s ease-in-out infinite;
     z-index: 9999; transition: transform 0.15s ease, box-shadow 0.3s ease;
   }
   #chat-orb:active { cursor: grabbing; transform: scale(1.1); }
-  #chat-orb:hover { box-shadow: 0 0 40px #00ffc6, 0 0 100px #00ffc6; }
+  #chat-orb:hover { box-shadow: 0 0 40px var(--accent), 0 0 100px var(--accent); }
   @keyframes floaty { 0% { transform: translateY(0px); } 50% { transform: translateY(-6px); } 100% { transform: translateY(0px); } }
   @keyframes shimmer {
-    0%, 100% { box-shadow: 0 0 25px #00ffc6, 0 0 60px #00ffc6, inset 0 0 10px rgba(255,255,255,0.2); }
-    50% { box-shadow: 0 0 35px #00ffd5, 0 0 90px #00ffc6, inset 0 0 12px rgba(255,255,255,0.3); }
+    0%, 100% { box-shadow: 0 0 25px var(--accent), 0 0 60px var(--accent), inset 0 0 10px rgba(255,255,255,0.2); }
+    50% { box-shadow: 0 0 35px var(--accent), 0 0 90px var(--accent), inset 0 0 12px rgba(255,255,255,0.3); }
   }
   .trail {
     position: fixed; width: 45px; height: 45px; border-radius: 50%; pointer-events: none;
@@ -181,10 +199,10 @@
   .screen.active { animation: fadeIn 0.3s ease-in-out; }
 
   /* ── Calendar day highlights ── */
-  .period-day { background: rgba(255,105,180,0.2) !important; border: 1px solid #ff4081 !important; text-shadow: 0 0 6px rgba(255,100,160,0.7); }
-  .fertile-day { background: rgba(0,255,102,0.10) !important; border: 1px solid #00ff99 !important; }
-  .ovulation-day { background: rgba(0,204,255,0.12) !important; border: 1px solid #00e5ff !important; }
-  .predicted-period-day { background: rgba(255,120,140,0.10); border: 1px solid rgba(255,120,140,0.3) !important; animation: softPulse 3s ease-in-out infinite; }
+  .period-day { background: var(--sec-cycle-dim) !important; border: 1px solid var(--sec-cycle) !important; }
+  .fertile-day { background: var(--sec-cycle-dim) !important; border: 1px solid var(--sec-cycle) !important; opacity: 0.7; }
+  .ovulation-day { background: var(--sec-cycle-dim) !important; border: 1px solid var(--sec-cycle) !important; box-shadow: 0 0 0 1px var(--sec-cycle); }
+  .predicted-period-day { background: var(--sec-cycle-dim); border: 1px solid var(--sec-cycle) !important; opacity: 0.6; animation: softPulse 3s ease-in-out infinite; }
   @keyframes softPulse {
     0% { box-shadow: 0 0 6px rgba(255,120,140,0.25); }
     50% { box-shadow: 0 0 14px rgba(255,120,140,0.45); }
@@ -209,7 +227,7 @@
   .fade-in { animation: cardIntro 260ms ease both; }
   @keyframes cardIntro { from { opacity: 0; transform: translateY(8px) scale(0.995); } to { opacity: 1; transform: translateY(0) scale(1); } }
   .progress-bar { height: 8px; background: rgba(255,255,255,0.04); border-radius: 8px; overflow: hidden; margin-top: 8px; }
-  .progress-bar > i { display: block; height: 100%; background: linear-gradient(90deg, #00ffc6, #00bfa5 60%); width: 0%; transition: width 220ms ease; }
+  .progress-bar > i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-dark) 60%); width: 0%; transition: width 220ms ease; }
 
   /* ── Suggestion cards ── */
   .suggestion-card {
@@ -222,7 +240,7 @@
   .suggestion-card .title { font-weight: bold; }
   .suggestion-card .author { font-style: italic; margin-bottom: 4px; color: #aaffdd; }
   .suggestion-card .description { font-size: 0.85rem; color: #aaffdd; max-height: 4em; overflow: hidden; }
-  .add-book-btn { margin-top: 4px; padding: 4px 8px; background: #00ffc6; border: none; border-radius: 6px; cursor: pointer; color: #001912; font-weight: 600; }
+  .add-book-btn { margin-top: 4px; padding: 4px 8px; background: var(--accent); border: none; border-radius: 6px; cursor: pointer; color: #001912; font-weight: 600; }
   .add-book-btn:hover { background: #00e6b3; }
 
   /* ── More overlay updated ── */
@@ -281,29 +299,29 @@
   <svg width="54" height="54" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="ava-symbol">
     <defs>
       <radialGradient id="ava-glow" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stop-color="#00ffc6" stop-opacity="1"/>
-        <stop offset="60%" stop-color="#00bfa5" stop-opacity="0.6"/>
+        <stop offset="0%" stop-color="var(--accent)" stop-opacity="1"/>
+        <stop offset="60%" stop-color="var(--accent-dark)" stop-opacity="0.6"/>
         <stop offset="100%" stop-color="#002f2f" stop-opacity="0"/>
       </radialGradient>
       <radialGradient id="aura" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stop-color="#00ffc6" stop-opacity="0.3"/>
-        <stop offset="100%" stop-color="#00ffc6" stop-opacity="0"/>
+        <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.3"/>
+        <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/>
       </radialGradient>
     </defs>
     <circle cx="50" cy="50" r="48" fill="url(#aura)">
       <animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="20s" repeatCount="indefinite"/>
     </circle>
-    <circle cx="50" cy="50" r="28" fill="url(#ava-glow)" stroke="#00ffc6" stroke-width="2"/>
-    <circle cx="50" cy="50" r="38" stroke="#00ffc6" stroke-width="1.2" stroke-opacity="0.4" fill="none">
+    <circle cx="50" cy="50" r="28" fill="url(#ava-glow)" stroke="var(--accent)" stroke-width="2"/>
+    <circle cx="50" cy="50" r="38" stroke="var(--accent)" stroke-width="1.2" stroke-opacity="0.4" fill="none">
       <animateTransform attributeName="transform" type="rotate" from="0 50 50" to="-360 50 50" dur="25s" repeatCount="indefinite"/>
     </circle>
-    <circle cx="50" cy="50" r="18" stroke="#00ffc6" stroke-width="1" stroke-opacity="0.3" fill="none">
+    <circle cx="50" cy="50" r="18" stroke="var(--accent)" stroke-width="1" stroke-opacity="0.3" fill="none">
       <animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="15s" repeatCount="indefinite"/>
     </circle>
-    <path d="M50 25 L65 50 L50 75 L35 50 Z" fill="none" stroke="#00ffc6" stroke-width="1.6" stroke-opacity="0.8">
+    <path d="M50 25 L65 50 L50 75 L35 50 Z" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-opacity="0.8">
       <animateTransform attributeName="transform" type="rotate" from="0 50 50" to="-360 50 50" dur="12s" repeatCount="indefinite"/>
     </path>
-    <circle cx="50" cy="50" r="6" fill="#00ffc6" opacity="0.9">
+    <circle cx="50" cy="50" r="6" fill="var(--accent)" opacity="0.9">
       <animate attributeName="r" values="6;7;6" dur="3s" repeatCount="indefinite"/>
     </circle>
   </svg>
@@ -391,9 +409,9 @@
     </div>
     <div id="calendar-grid"></div>
     <div class="legend">
-      <div class="legend-item"><span class="legend-swatch" style="background:var(--rose-dim); border:1px solid var(--rose);"></span>Logged period</div>
-      <div class="legend-item"><span class="legend-swatch" style="background:var(--surface-2); border:1px dashed var(--rose);"></span>Predicted</div>
-      <div class="legend-item"><span class="legend-swatch" style="background:var(--surface-2); border:1px solid var(--amber);"></span>Ovulation</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--sec-cycle-dim); border:1px solid var(--sec-cycle);"></span>Logged period</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--surface-2); border:1px dashed var(--sec-cycle);"></span>Predicted</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--surface-2); border:1px solid var(--sec-cycle);"></span>Ovulation</div>
       <div class="legend-item"><span class="legend-swatch" style="background:var(--surface-2); outline:2px solid var(--teal);"></span>Today</div>
     </div>
   </div>
@@ -631,6 +649,39 @@
   </div>
 </div>
 
+<!-- SETTINGS / APPEARANCE -->
+<div class="screen" id="settings-screen">
+  <div class="page-header"><div class="page-eyebrow">Personalize</div><div class="page-title">Settings</div></div>
+
+  <div class="card">
+    <div class="stat-label" style="margin-bottom:10px;">Theme</div>
+    <div id="theme-preset-grid" style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;"></div>
+  </div>
+
+  <div class="card">
+    <div class="stat-label" style="margin-bottom:4px;">Section colors</div>
+    <div style="font-size:11px; color:var(--text-dim); margin-bottom:12px; line-height:1.5;">Override any section's color independently of the theme above.</div>
+    <div id="section-color-list"></div>
+    <button class="primary" id="reset-colors-btn" style="width:100%; margin-top:10px; background:var(--surface-2); color:var(--text); border:1px solid var(--border);">Reset to theme defaults</button>
+  </div>
+
+  <div class="card">
+    <div class="stat-label" style="margin-bottom:4px;">Visible tabs</div>
+    <div style="font-size:11px; color:var(--text-dim); margin-bottom:12px; line-height:1.5;">Hide anything you don't use. This only affects your account.</div>
+    <div id="tab-visibility-list"></div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex; align-items:center; justify-content:space-between;">
+      <div>
+        <div style="font-size:13px; font-weight:600;">Account</div>
+        <div style="font-size:11px; color:var(--text-dim); margin-top:2px;" id="settings-account-email">—</div>
+      </div>
+      <button class="primary" id="settings-logout-btn" style="background:var(--surface-2); color:var(--text); border:1px solid var(--border);">Log out</button>
+    </div>
+  </div>
+</div>
+
 <!-- MEDIA OVERLAY (Books, Movies, Games) -->
 <div id="media-overlay" class="group-overlay">
   <div class="more-header">
@@ -794,6 +845,7 @@ const StorageKeys = {
   expenses: 'expenses',        // [{id, amount, category, note, date: 'YYYY-MM-DD'}]
   budgets: 'budgets',          // { categoryName: limitAmount }
   goals: 'goals',              // [{id, name, target, current}]
+  appearance: 'appearance',    // { preset: 'teal', overrides: {cycle:'#hex', todos:'#hex', ...}, hiddenTabs: ['cycle', ...] }
 };
 
 let currentUser = null;       // set after login
@@ -872,6 +924,7 @@ function reloadFromCacheAndRerender(key) {
     case StorageKeys.expenses: expenses = loadJSON(key, []); renderExpenses(); break;
     case StorageKeys.budgets: budgets = loadJSON(key, {}); renderExpenses(); break;
     case StorageKeys.goals: goals = loadJSON(key, []); renderGoals(); break;
+    case StorageKeys.appearance: appearance = loadJSON(key, defaultAppearance()); applyAppearance(); renderTabBar(); renderSettingsScreen(); break;
   }
   renderStorageSummary();
 }
@@ -892,6 +945,177 @@ let goals = [];
 const EXPENSE_CATEGORIES = ['Food', 'Rent', 'Transport', 'Entertainment', 'Shopping', 'Bills', 'Health', 'Other'];
 let apiKeys = { gemini: '', openai: '', anthropic: '' };
 let activeProvider = null;
+let appearance = null; // { preset, overrides: {section: hex}, hiddenTabs: [] }
+
+// ── Theme presets ──
+// Each preset defines the global accent + the cycle section color (which
+// defaults differently since pink/rose doesn't suit every palette).
+const THEME_PRESETS = {
+  teal:   { label: 'Teal',   accent: '#00ffc6', cycle: '#ff4081' },
+  red:    { label: 'Red',    accent: '#ff3b3b', cycle: '#ff3b3b' },
+  blue:   { label: 'Ocean',  accent: '#2fb6ff', cycle: '#ff6b9d' },
+  purple: { label: 'Violet', accent: '#b07bff', cycle: '#ff6bd6' },
+  amber:  { label: 'Amber',  accent: '#ffb13b', cycle: '#ff5a7a' },
+};
+const SECTION_LIST = [
+  { key: 'cycle',    label: 'Cycle Tracking' },
+  { key: 'todos',    label: 'Tasks' },
+  { key: 'notes',    label: 'Notes' },
+  { key: 'books',    label: 'Books' },
+  { key: 'movies',   label: 'Movies & TV' },
+  { key: 'games',    label: 'Games' },
+  { key: 'finance',  label: 'Finance' },
+  { key: 'calendar', label: 'Calendar' },
+];
+// Tabs that can be hidden per-user. Home and Chat are always visible (core nav).
+const HIDEABLE_TAB_IDS = ['todos', 'notes', 'books', 'movies', 'games', 'cycle', 'calendar', 'finance'];
+
+function defaultAppearance() {
+  return { preset: 'teal', overrides: {}, hiddenTabs: [] };
+}
+
+// Convert a hex color like #ff4081 to an rgba(...) string for the "dim" variant.
+function hexToRgba(hex, alpha) {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.substring(0,2), 16), g = parseInt(h.substring(2,4), 16), b = parseInt(h.substring(4,6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+// Apply the current `appearance` state to the document by writing CSS
+// custom properties onto :root. Called on boot and whenever appearance changes.
+function applyAppearance() {
+  if (!appearance) appearance = defaultAppearance();
+  const preset = THEME_PRESETS[appearance.preset] || THEME_PRESETS.teal;
+  const root = document.documentElement.style;
+
+  const globalAccent = appearance.overrides.global || preset.accent;
+  root.setProperty('--accent', globalAccent);
+  root.setProperty('--accent-glow', hexToRgba(globalAccent, 0.25));
+  root.setProperty('--accent-dark', globalAccent);
+  root.setProperty('--accent-darker', hexToRgba(globalAccent, 0.6));
+  root.setProperty('--teal', globalAccent);
+  root.setProperty('--teal-dim', hexToRgba(globalAccent, 0.10));
+  root.setProperty('--amber', globalAccent);
+  root.setProperty('--amber-dim', hexToRgba(globalAccent, 0.12));
+  root.setProperty('--border', hexToRgba(globalAccent, 0.12));
+
+  SECTION_LIST.forEach(({ key }) => {
+    const color = appearance.overrides[key] || (key === 'cycle' ? preset.cycle : globalAccent);
+    root.setProperty(`--sec-${key}`, color);
+    root.setProperty(`--sec-${key}-dim`, hexToRgba(color, 0.15));
+  });
+}
+
+function persistAppearance() { saveJSON(StorageKeys.appearance, appearance); }
+
+// ============================================================
+// Settings screen — theme presets, per-section color overrides,
+// tab visibility. Everything here is per-account (synced via Supabase).
+// ============================================================
+function renderSettingsScreen() {
+  if (!appearance) return;
+  renderThemePresetGrid();
+  renderSectionColorList();
+  renderTabVisibilityList();
+  const emailEl = $('settings-account-email');
+  if (emailEl && currentUser) emailEl.textContent = currentUser.email || '';
+}
+
+function renderThemePresetGrid() {
+  const grid = $('theme-preset-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  Object.entries(THEME_PRESETS).forEach(([key, preset]) => {
+    const tile = document.createElement('div');
+    const isActive = appearance.preset === key;
+    tile.style.cssText = `border-radius:10px; border:1.5px solid ${isActive ? preset.accent : 'var(--border)'}; padding:12px 8px; display:flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer; background:var(--surface-2);`;
+    tile.innerHTML = `
+      <div style="width:28px; height:28px; border-radius:50%; background:${preset.accent}; box-shadow:0 0 10px ${preset.accent};"></div>
+      <span style="font-size:11px; font-family:'SF Mono',monospace; color:${isActive ? 'var(--text)' : 'var(--text-dim)'};">${preset.label}</span>
+    `;
+    tile.onclick = () => {
+      appearance.preset = key;
+      persistAppearance();
+      applyAppearance();
+      renderSettingsScreen();
+    };
+    grid.appendChild(tile);
+  });
+}
+
+function renderSectionColorList() {
+  const list = $('section-color-list');
+  if (!list) return;
+  list.innerHTML = '';
+  // "Overall accent" row first, then each individual section
+  const rows = [{ key: 'global', label: 'Overall accent' }, ...SECTION_LIST];
+  rows.forEach(({ key, label }) => {
+    const preset = THEME_PRESETS[appearance.preset] || THEME_PRESETS.teal;
+    const currentColor = appearance.overrides[key] || (key === 'global' ? preset.accent : (key === 'cycle' ? preset.cycle : preset.accent));
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex; align-items:center; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--border);';
+    row.innerHTML = `
+      <span style="font-size:13px;">${label}</span>
+      <input type="color" value="${currentColor}" style="width:36px; height:28px; border:none; border-radius:6px; background:none; cursor:pointer; padding:0;">
+    `;
+    const input = row.querySelector('input');
+    input.oninput = () => {
+      appearance.overrides[key] = input.value;
+      applyAppearance();
+    };
+    input.onchange = () => {
+      appearance.overrides[key] = input.value;
+      persistAppearance();
+      applyAppearance();
+    };
+    list.appendChild(row);
+  });
+  list.lastChild.style.borderBottom = 'none';
+}
+
+$('reset-colors-btn').onclick = () => {
+  appearance.overrides = {};
+  persistAppearance();
+  applyAppearance();
+  renderSettingsScreen();
+};
+
+function renderTabVisibilityList() {
+  const list = $('tab-visibility-list');
+  if (!list) return;
+  list.innerHTML = '';
+  const allHideable = [...ALL_TABS.filter(t => HIDEABLE_TAB_IDS.includes(t.id)), ...MEDIA_TABS, ...HEALTH_TABS, FINANCE_TAB];
+  allHideable.forEach(tab => {
+    const hidden = isTabHidden(tab.id);
+    const row = document.createElement('div');
+    row.className = 'nav-toggle-row';
+    row.style.cssText = 'padding:9px 0; border-bottom:1px solid var(--border);';
+    row.innerHTML = `
+      <div style="display:flex; align-items:center; gap:10px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="color:var(--text-dim);">${tab.svg}</svg>
+        <span style="font-size:13px;">${tab.label.charAt(0) + tab.label.slice(1).toLowerCase()}</span>
+      </div>
+      <div class="toggle-track${!hidden ? ' on' : ''}"><div class="toggle-knob"></div></div>
+    `;
+    row.querySelector('.toggle-track').onclick = () => {
+      const hiddenSet = new Set(appearance.hiddenTabs || []);
+      if (hiddenSet.has(tab.id)) hiddenSet.delete(tab.id); else hiddenSet.add(tab.id);
+      appearance.hiddenTabs = [...hiddenSet];
+      // If we just hid the currently-active screen, jump back to Home.
+      if (appearance.hiddenTabs.includes(activeScreen)) switchScreen('home');
+      persistAppearance();
+      renderTabBar();
+      renderTabVisibilityList();
+    };
+    list.appendChild(row);
+  });
+  if (list.lastChild) list.lastChild.style.borderBottom = 'none';
+}
+
+$('settings-logout-btn').onclick = async () => {
+  await authClient.auth.signOut();
+  window.location.reload();
+};
 
 // Populate all in-memory variables from the fetched cache. Called once
 // right after login + fetchAllData(), before the app's boot/render runs.
@@ -911,6 +1135,7 @@ function hydrateFromCache() {
   goals = loadJSON(StorageKeys.goals, []);
   apiKeys = loadJSON(StorageKeys.apiKeys, { gemini: '', openai: '', anthropic: '' });
   activeProvider = loadJSON(StorageKeys.provider, apiKeys.gemini ? 'gemini' : null);
+  appearance = loadJSON(StorageKeys.appearance, defaultAppearance());
 }
 
 function persistTodos() { saveJSON(StorageKeys.todos, todos); }
@@ -967,12 +1192,19 @@ function switchScreen(screenId) {
 const MEDIA_IDS  = MEDIA_TABS.map(t => t.id);
 const HEALTH_IDS = HEALTH_TABS.map(t => t.id);
 
+function isTabHidden(id) {
+  return appearance && appearance.hiddenTabs && appearance.hiddenTabs.includes(id);
+}
+
 function renderTabBar() {
   const bar = $('tabbar');
   bar.className = navMode === 'scroll' ? 'mode-scroll' : 'mode-compact';
   bar.innerHTML = '';
 
-  const allGrouped = [...MEDIA_TABS, ...HEALTH_TABS, FINANCE_TAB];
+  const visibleMedia = MEDIA_TABS.filter(t => !isTabHidden(t.id));
+  const visibleHealth = HEALTH_TABS.filter(t => !isTabHidden(t.id));
+  const financeVisible = !isTabHidden(FINANCE_TAB.id);
+  const allGrouped = [...visibleMedia, ...visibleHealth, ...(financeVisible ? [FINANCE_TAB] : [])];
 
   if (navMode === 'scroll') {
     [...ALL_TABS, ...allGrouped].forEach(tab => {
@@ -982,6 +1214,11 @@ function renderTabBar() {
       btn.onclick = () => switchScreen(tab.id);
       bar.appendChild(btn);
     });
+    const setBtnScroll = document.createElement('div');
+    setBtnScroll.className = 'tab-btn' + (activeScreen === 'settings' ? ' active' : '');
+    setBtnScroll.innerHTML = `<svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 005 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 005 9a1.65 1.65 0 00-.33-1.82l-.06-.06A2 2 0 117.44 4.3l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09A1.65 1.65 0 0015 4.6a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.16.36.39.68.69.94.3.26.65.46 1.02.55 0 0 .89.2.89 1.51s-.89 1.51-.89 1.51"/></svg>MORE`;
+    setBtnScroll.onclick = () => switchScreen('settings');
+    bar.appendChild(setBtnScroll);
   } else {
     // Primary tabs
     ALL_TABS.forEach(tab => {
@@ -993,35 +1230,48 @@ function renderTabBar() {
     });
 
     // Finance tab (standalone)
-    const finBtn = document.createElement('div');
-    finBtn.className = 'tab-btn' + (activeScreen === 'finance' ? ' active' : '');
-    finBtn.innerHTML = `<svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${FINANCE_TAB.svg}</svg>${FINANCE_TAB.label}`;
-    finBtn.onclick = () => switchScreen('finance');
-    bar.appendChild(finBtn);
+    if (financeVisible) {
+      const finBtn = document.createElement('div');
+      finBtn.className = 'tab-btn' + (activeScreen === 'finance' ? ' active' : '');
+      finBtn.innerHTML = `<svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${FINANCE_TAB.svg}</svg>${FINANCE_TAB.label}`;
+      finBtn.onclick = () => switchScreen('finance');
+      bar.appendChild(finBtn);
+    }
 
-    // Media group button
-    const mediaActive = MEDIA_IDS.includes(activeScreen);
-    const mediaBtn = document.createElement('div');
-    mediaBtn.className = 'tab-btn' + (mediaActive ? ' active' : '');
-    mediaBtn.innerHTML = `<svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M10 9l5 3-5 3V9z"/></svg>MEDIA`;
-    mediaBtn.onclick = () => {
-      closeAllOverlays();
-      buildGroupGrid('media-grid', MEDIA_TABS);
-      $('media-overlay').classList.add('active');
-    };
-    bar.appendChild(mediaBtn);
+    // Media group button (hidden entirely if all its tabs are hidden)
+    if (visibleMedia.length) {
+      const mediaActive = MEDIA_IDS.includes(activeScreen);
+      const mediaBtn = document.createElement('div');
+      mediaBtn.className = 'tab-btn' + (mediaActive ? ' active' : '');
+      mediaBtn.innerHTML = `<svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M10 9l5 3-5 3V9z"/></svg>MEDIA`;
+      mediaBtn.onclick = () => {
+        closeAllOverlays();
+        buildGroupGrid('media-grid', visibleMedia);
+        $('media-overlay').classList.add('active');
+      };
+      bar.appendChild(mediaBtn);
+    }
 
-    // Health group button
-    const healthActive = HEALTH_IDS.includes(activeScreen);
-    const healthBtn = document.createElement('div');
-    healthBtn.className = 'tab-btn' + (healthActive ? ' active' : '');
-    healthBtn.innerHTML = `<svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21C12 21 4 13.5 4 8.5A5 5 0 0112 5.07 5 5 0 0120 8.5C20 13.5 12 21 12 21z"/></svg>HEALTH`;
-    healthBtn.onclick = () => {
-      closeAllOverlays();
-      buildGroupGrid('health-grid', HEALTH_TABS);
-      $('health-overlay').classList.add('active');
-    };
-    bar.appendChild(healthBtn);
+    // Health group button (hidden entirely if all its tabs are hidden)
+    if (visibleHealth.length) {
+      const healthActive = HEALTH_IDS.includes(activeScreen);
+      const healthBtn = document.createElement('div');
+      healthBtn.className = 'tab-btn' + (healthActive ? ' active' : '');
+      healthBtn.innerHTML = `<svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21C12 21 4 13.5 4 8.5A5 5 0 0112 5.07 5 5 0 0120 8.5C20 13.5 12 21 12 21z"/></svg>HEALTH`;
+      healthBtn.onclick = () => {
+        closeAllOverlays();
+        buildGroupGrid('health-grid', visibleHealth);
+        $('health-overlay').classList.add('active');
+      };
+      bar.appendChild(healthBtn);
+    }
+
+    // Settings tab (always visible, lives in compact mode's bar directly)
+    const setBtn = document.createElement('div');
+    setBtn.className = 'tab-btn' + (activeScreen === 'settings' ? ' active' : '');
+    setBtn.innerHTML = `<svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 005 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 005 9a1.65 1.65 0 00-.33-1.82l-.06-.06A2 2 0 117.44 4.3l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09A1.65 1.65 0 0015 4.6a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.16.36.39.68.69.94.3.26.65.46 1.02.55 0 0 .89.2.89 1.51s-.89 1.51-.89 1.51"/></svg>MORE`;
+    setBtn.onclick = () => switchScreen('settings');
+    bar.appendChild(setBtn);
   }
 }
 
@@ -2223,6 +2473,7 @@ function renderGoals() {
 // Boot — runs once, right after a successful login + data fetch.
 // ============================================================
 function bootApp() {
+  applyAppearance();
   $('period-start').valueAsDate = new Date();
   renderTodos();
   renderChatUI();
@@ -2239,6 +2490,8 @@ function bootApp() {
   renderExpenses();
   $('game-platform-input').dispatchEvent(new Event('change'));
   renderStorageSummary();
+  renderTabBar();
+  renderSettingsScreen();
   subscribeRealtime();
 }
 

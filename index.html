@@ -1028,6 +1028,39 @@ function hexToRgba(hex, alpha) {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
+// Derive a very dark, low-saturation background tint from the accent hue,
+// so the page background subtly follows the theme without hurting
+// readability (we keep lightness low and saturation modest regardless
+// of how vivid the source accent color is).
+function hexToHue(hex) {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.substring(0,2), 16) / 255, g = parseInt(h.substring(2,4), 16) / 255, b = parseInt(h.substring(4,6), 16) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let hue = 0;
+  const d = max - min;
+  if (d !== 0) {
+    if (max === r) hue = ((g - b) / d) % 6;
+    else if (max === g) hue = (b - r) / d + 2;
+    else hue = (r - g) / d + 4;
+    hue *= 60;
+    if (hue < 0) hue += 360;
+  }
+  return hue;
+}
+function hslToHex(h, s, l) {
+  s /= 100; l /= 100;
+  const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = l - c / 2;
+  let r = 0, g = 0, b = 0;
+  if (h < 60) [r, g, b] = [c, x, 0];
+  else if (h < 120) [r, g, b] = [x, c, 0];
+  else if (h < 180) [r, g, b] = [0, c, x];
+  else if (h < 240) [r, g, b] = [0, x, c];
+  else if (h < 300) [r, g, b] = [x, 0, c];
+  else [r, g, b] = [c, 0, x];
+  const toHex = v => Math.round((v + m) * 255).toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
 // Apply the current `appearance` state to the document by writing CSS
 // custom properties onto :root. Called on boot and whenever appearance changes.
 function applyAppearance() {
@@ -1045,6 +1078,14 @@ function applyAppearance() {
   root.setProperty('--amber', globalAccent);
   root.setProperty('--amber-dim', hexToRgba(globalAccent, 0.12));
   root.setProperty('--border', hexToRgba(globalAccent, 0.12));
+
+  // Background follows the theme too — a very dark, low-saturation tint
+  // of the accent's hue, so it reads as "themed" without hurting contrast
+  // or legibility (kept far darker/less saturated than the accent itself).
+  const hue = hexToHue(globalAccent);
+  root.setProperty('--bg', hslToHex(hue, 45, 7));
+  root.setProperty('--surface', hslToHex(hue, 40, 11));
+  root.setProperty('--surface-2', hslToHex(hue, 35, 15));
 
   SECTION_LIST.forEach(({ key }) => {
     const color = appearance.overrides[key] || (key === 'cycle' ? preset.cycle : globalAccent);
@@ -2050,7 +2091,7 @@ const PROVIDER_INFO = {
 let selectedProviderInForm = activeProvider || 'gemini';
 
 function renderProviderPills() {
-  document.querySelectorAll('.provider-pill').forEach(pill => {
+  document.querySelectorAll('#chat-key-card .provider-pill').forEach(pill => {
     pill.classList.toggle('active', pill.dataset.provider === selectedProviderInForm);
   });
   const info = PROVIDER_INFO[selectedProviderInForm];
@@ -2059,7 +2100,7 @@ function renderProviderPills() {
   $('api-key-input').value = apiKeys[selectedProviderInForm] || '';
 }
 
-document.querySelectorAll('.provider-pill').forEach(pill => {
+document.querySelectorAll('#chat-key-card .provider-pill').forEach(pill => {
   pill.onclick = () => {
     selectedProviderInForm = pill.dataset.provider;
     renderProviderPills();

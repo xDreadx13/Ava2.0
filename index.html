@@ -8,6 +8,7 @@
 <meta name="theme-color" content="#0E1116">
 <title>AVA</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
   :root {
     --bg: #001a12; --surface: #002a20; --surface-2: #003828; --border: rgba(0,255,198,0.12);
@@ -242,6 +243,33 @@
 </style>
 </head>
 <body>
+
+<!-- AUTH GATE -->
+<div id="auth-screen" style="position:fixed; inset:0; z-index:5000; background:radial-gradient(circle at top left, #001a12, #000); display:flex; align-items:center; justify-content:center; padding:24px;">
+  <div style="width:100%; max-width:360px;">
+    <div style="text-align:center; margin-bottom:28px;">
+      <div style="font-family:'SF Mono',monospace; font-size:13px; color:var(--text-dim); letter-spacing:0.14em;">AVA</div>
+      <div style="font-size:24px; font-weight:700; margin-top:4px;">Welcome</div>
+    </div>
+    <div class="card">
+      <div class="provider-select">
+        <div class="provider-pill active" id="auth-mode-password">Password</div>
+        <div class="provider-pill" id="auth-mode-magic">Magic link</div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px; margin-top:12px;">
+        <input type="email" id="auth-email" placeholder="Email" autocomplete="email">
+        <input type="password" id="auth-password" placeholder="Password" autocomplete="current-password">
+      </div>
+      <button class="primary" id="auth-submit-btn" style="width:100%; margin-top:14px;">Log in</button>
+      <div id="auth-toggle-row" style="text-align:center; margin-top:12px; font-size:12px; color:var(--text-dim);">
+        New here? <span id="auth-toggle-signup" style="color:var(--accent); cursor:pointer; text-decoration:underline;">Create an account</span>
+      </div>
+      <div id="auth-status" style="font-size:12px; margin-top:10px; text-align:center; min-height:16px;"></div>
+    </div>
+  </div>
+</div>
+
+<div id="app-root" style="display:none;">
 
 <div id="topbar">
   <div class="pulse-wrap"><div class="pulse-dot"></div><span class="mono">AVA</span></div>
@@ -624,7 +652,101 @@
 <!-- TAB BAR -->
 <div id="tabbar"></div>
 
+</div><!-- /#app-root -->
+
 <script>
+// ============================================================
+// Auth — Supabase email/password + magic link.
+// Gates the app: nothing in #app-root renders or loads data
+// until a session exists.
+// ============================================================
+const SUPABASE_URL = 'https://lbrembnizwoaqmysdjfm.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxicmVtYm5pendvYXFteXNkamZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5OTgzMjEsImV4cCI6MjA5NzU3NDMyMX0.q1g0QPpNA0Jd7cUc8-p6aMk4daCa_B8Kf6A0cN1dvMs';
+const authClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let authMode = 'password'; // 'password' | 'magic'
+let authIsSignup = false;
+
+function setAuthStatus(msg, isError) {
+  const el = document.getElementById('auth-status');
+  el.textContent = msg;
+  el.style.color = isError ? 'var(--danger)' : 'var(--accent)';
+}
+
+document.getElementById('auth-mode-password').onclick = () => {
+  authMode = 'password';
+  document.getElementById('auth-mode-password').classList.add('active');
+  document.getElementById('auth-mode-magic').classList.remove('active');
+  document.getElementById('auth-password').style.display = '';
+  document.getElementById('auth-submit-btn').textContent = authIsSignup ? 'Sign up' : 'Log in';
+};
+document.getElementById('auth-mode-magic').onclick = () => {
+  authMode = 'magic';
+  document.getElementById('auth-mode-magic').classList.add('active');
+  document.getElementById('auth-mode-password').classList.remove('active');
+  document.getElementById('auth-password').style.display = 'none';
+  document.getElementById('auth-submit-btn').textContent = 'Send magic link';
+};
+document.getElementById('auth-toggle-signup').onclick = () => {
+  authIsSignup = !authIsSignup;
+  document.getElementById('auth-toggle-signup').textContent = authIsSignup ? 'Already have an account? Log in' : 'Create an account';
+  document.querySelector('#auth-toggle-row').firstChild.textContent = authIsSignup ? 'Welcome back. ' : 'New here? ';
+  if (authMode === 'password') document.getElementById('auth-submit-btn').textContent = authIsSignup ? 'Sign up' : 'Log in';
+};
+
+document.getElementById('auth-submit-btn').onclick = async () => {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  if (!email) { setAuthStatus('Enter your email.', true); return; }
+
+  setAuthStatus('Working…', false);
+  try {
+    if (authMode === 'magic') {
+      const { error } = await authClient.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.href } });
+      if (error) throw error;
+      setAuthStatus('Check your email for a magic link.', false);
+      return;
+    }
+    if (!password) { setAuthStatus('Enter your password.', true); return; }
+    if (authIsSignup) {
+      const { error } = await authClient.auth.signUp({ email, password });
+      if (error) throw error;
+      setAuthStatus('Account created. Check your email to confirm, then log in.', false);
+    } else {
+      const { error } = await authClient.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      // onAuthStateChange below handles the rest
+    }
+  } catch (err) {
+    setAuthStatus(err.message || 'Something went wrong.', true);
+  }
+};
+
+async function enterApp(session) {
+  currentUser = session.user;
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app-root').style.display = '';
+  await fetchAllData();
+  hydrateFromCache();
+  bootApp();
+}
+
+authClient.auth.onAuthStateChange((event, session) => {
+  if (session && session.user) {
+    if (document.getElementById('app-root').style.display === 'none' || !document.getElementById('app-root').style.display) {
+      enterApp(session);
+    }
+  } else {
+    document.getElementById('auth-screen').style.display = 'flex';
+    document.getElementById('app-root').style.display = 'none';
+  }
+});
+
+// Check for an existing session on load (so refreshes don't log you out)
+authClient.auth.getSession().then(({ data }) => {
+  if (data && data.session) enterApp(data.session);
+});
+
 // Single source of truth for every tab: id, label, and SVG icon markup.
 const ALL_TABS = [
   { id: 'home',     label: 'HOME',    svg: '<path d="M3 11.5L12 4l9 7.5"/><path d="M5 10v9a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1v-9"/>' },
@@ -649,154 +771,147 @@ const FINANCE_TAB = { id: 'finance', label: 'FINANCE', svg: '<circle cx="12" cy=
 
 
 // ============================================================
-// Storage: plain localStorage. Works fully offline, persists on
-// this device/browser only (no sync, no account, no server).
+// Storage: Supabase (cloud Postgres). Data lives in one table,
+// `ava_data`, scoped to the logged-in user via Row Level Security
+// — so it's private to your account, and syncs in realtime across
+// every device you're logged in on.
 // ============================================================
+const sb = authClient; // reuse the same client/session created in the auth module above
+
 const StorageKeys = {
-  todos: 'jarvis_todos',
-  periodLogs: 'jarvis_period_logs',
-  settings: 'jarvis_period_settings',
-  chat: 'jarvis_chat_history',
-  apiKey: 'jarvis_api_key',           // legacy single-key storage (pre-multi-provider), kept for migration
-  apiKeys: 'ava_api_keys',            // { gemini: '...', openai: '...', anthropic: '...' }
-  provider: 'ava_active_provider',    // 'gemini' | 'openai' | 'anthropic'
-  notes: 'ava_notes',
-  bbtLogs: 'ava_bbt_logs',            // [{id, date: 'YYYY-MM-DD', temp: number}]
-  books: 'ava_books',                 // [{id, title, author, status, notes, createdAt}]
-  events: 'ava_events',               // [{id, title, date: 'YYYY-MM-DD', time: 'HH:MM'|null}]
-  movies: 'ava_movies',               // [{id, title, type: 'movie'|'tv', status, rating, createdAt}]
-  games: 'ava_games',                 // [{id, title, platform, status, rating, price, priceSource, createdAt}]
-  expenses: 'ava_expenses',           // [{id, amount, category, note, date: 'YYYY-MM-DD'}]
-  budgets: 'ava_budgets',             // { categoryName: limitAmount }
-  goals: 'ava_goals',                 // [{id, name, target, current}]
+  todos: 'todos',
+  periodLogs: 'periodLogs',
+  settings: 'settings',
+  chat: 'chat',
+  apiKeys: 'apiKeys',          // { gemini: '...', openai: '...', anthropic: '...' }
+  provider: 'provider',        // 'gemini' | 'openai' | 'anthropic'
+  notes: 'notes',
+  bbtLogs: 'bbtLogs',          // [{id, date: 'YYYY-MM-DD', temp: number}]
+  books: 'books',              // [{id, title, author, status, notes, createdAt}]
+  events: 'events',            // [{id, title, date: 'YYYY-MM-DD', time: 'HH:MM'|null}]
+  movies: 'movies',            // [{id, title, type: 'movie'|'tv', status, rating, createdAt}]
+  games: 'games',              // [{id, title, platform, status, rating, price, priceSource, createdAt}]
+  expenses: 'expenses',        // [{id, amount, category, note, date: 'YYYY-MM-DD'}]
+  budgets: 'budgets',          // { categoryName: limitAmount }
+  goals: 'goals',              // [{id, name, target, current}]
 };
 
-// ============================================================
-// Storage: IndexedDB (primary) with localStorage fallback.
-// All data is local-first, no server, no account needed.
-// ============================================================
-const DB_NAME = 'ava_db';
-const DB_VERSION = 1;
-const STORE = 'keyval';
+let currentUser = null;       // set after login
+let _localCache = {};         // in-memory mirror of every row this session, key -> value
+let _realtimeChannel = null;
+let _saveTimers = {};         // per-key debounce so rapid edits don't spam the network
 
-let _db = null;
-
-function openDB() {
-  return new Promise((resolve, reject) => {
-    if (_db) return resolve(_db);
-    const req = indexedDB.open(DB_NAME, DB_VERSION);
-    req.onupgradeneeded = e => e.target.result.createObjectStore(STORE);
-    req.onsuccess = e => { _db = e.target.result; resolve(_db); };
-    req.onerror = () => reject(req.error);
-  });
+// Fetch every row for the logged-in user in one request, populate the local cache.
+async function fetchAllData() {
+  const { data, error } = await sb.from('ava_data').select('key, value').eq('user_id', currentUser.id);
+  if (error) { console.error('Supabase fetch error:', error); return {}; }
+  const result = {};
+  data.forEach(row => { result[row.key] = row.value; });
+  _localCache = result;
+  return result;
 }
 
-async function idbSet(key, value) {
-  try {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE, 'readwrite');
-      tx.objectStore(STORE).put(value, key);
-      tx.oncomplete = resolve;
-      tx.onerror = () => reject(tx.error);
-    });
-  } catch (e) {
-    // fallback to localStorage
-    try { localStorage.setItem(key, JSON.stringify(value)); } catch (_) {}
-  }
-}
-
-async function idbGet(key) {
-  try {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE, 'readonly');
-      const req = tx.objectStore(STORE).get(key);
-      req.onsuccess = () => resolve(req.result ?? null);
-      req.onerror = () => reject(req.error);
-    });
-  } catch (e) {
-    try {
-      const raw = localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : null;
-    } catch (_) { return null; }
-  }
-}
-
-async function idbGetAll() {
-  try {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE, 'readonly');
-      const store = tx.objectStore(STORE);
-      const keys = [], values = [];
-      store.openCursor().onsuccess = e => {
-        const cursor = e.target.result;
-        if (cursor) { keys.push(cursor.key); values.push(cursor.value); cursor.continue(); }
-        else {
-          const result = {};
-          keys.forEach((k, i) => result[k] = values[i]);
-          resolve(result);
-        }
-      };
-      tx.onerror = () => reject(tx.error);
-    });
-  } catch (e) { return {}; }
-}
-
-// Migrate existing localStorage data into IndexedDB on first load
-async function migrateFromLocalStorage() {
-  const allKeys = Object.values(StorageKeys);
-  for (const key of allKeys) {
-    const lsVal = localStorage.getItem(key);
-    if (lsVal !== null) {
-      try {
-        await idbSet(key, JSON.parse(lsVal));
-      } catch (_) {}
-    }
-  }
-}
-
-// Sync load from localStorage for immediate startup (no async wait),
-// then IndexedDB writes take over for all subsequent saves.
+// Synchronous read from the local cache (already populated at boot by fetchAllData).
 function loadJSON(key, fallback) {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : fallback;
-  } catch (e) { return fallback; }
+  return (key in _localCache) ? _localCache[key] : fallback;
 }
 
-// All saves go to both localStorage (instant) + IndexedDB (durable)
+// Upsert one bucket to Supabase, debounced per-key so e.g. typing doesn't fire
+// a request per keystroke. Also updates local cache immediately for snappy UI.
 function saveJSON(key, value) {
-  try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
-  idbSet(key, value).catch(() => {});
+  _localCache[key] = value;
+  setSaveStatus('saving');
+  clearTimeout(_saveTimers[key]);
+  _saveTimers[key] = setTimeout(async () => {
+    if (!currentUser) return;
+    const { error } = await sb.from('ava_data').upsert({
+      user_id: currentUser.id, key, value, updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,key' });
+    if (error) { console.error('Supabase save error:', error); setSaveStatus('error'); }
+    else setSaveStatus('saved');
+  }, 400);
 }
 
-let todos = loadJSON(StorageKeys.todos, []);
-let periodLogs = loadJSON(StorageKeys.periodLogs, []); // [{id, start: 'YYYY-MM-DD', end: 'YYYY-MM-DD'|null}]
-let settings = loadJSON(StorageKeys.settings, { cycleLength: 28, periodLength: 5, lutealLength: 14, autoCalculate: true });
-let chatHistory = loadJSON(StorageKeys.chat, []);
-let notes = loadJSON(StorageKeys.notes, []); // [{id, text, createdAt}]
-let bbtLogs = loadJSON(StorageKeys.bbtLogs, []); // [{id, date, temp}]
-let books = loadJSON(StorageKeys.books, []); // [{id, title, author, status, notes, createdAt}]
-let events = loadJSON(StorageKeys.events, []);
-let movies = loadJSON(StorageKeys.movies, []);
-let games = loadJSON(StorageKeys.games, []);
-let expenses = loadJSON(StorageKeys.expenses, []);
-let budgets = loadJSON(StorageKeys.budgets, {});
-let goals = loadJSON(StorageKeys.goals, []);
+function setSaveStatus(state) {
+  const el = $('storage-status');
+  if (!el) return;
+  if (state === 'saving') el.textContent = '● SAVING…';
+  else if (state === 'error') { el.textContent = '● OFFLINE (not saved)'; el.style.color = 'var(--danger)'; }
+  else { el.textContent = '● SYNCED'; el.style.color = 'var(--accent)'; }
+}
+
+// Subscribe to realtime changes so other devices logged into the same
+// account push updates here instantly, without a manual refresh.
+function subscribeRealtime() {
+  if (_realtimeChannel) sb.removeChannel(_realtimeChannel);
+  _realtimeChannel = sb.channel('ava_data_changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'ava_data', filter: `user_id=eq.${currentUser.id}` },
+      payload => {
+        const row = payload.new && payload.new.key ? payload.new : payload.old;
+        if (!row || !row.key) return;
+        _localCache[row.key] = payload.eventType === 'DELETE' ? undefined : row.value;
+        reloadFromCacheAndRerender(row.key);
+      })
+    .subscribe();
+}
+
+// When a remote change comes in for a given bucket, reload that bucket's
+// in-memory variable and re-render just the relevant screens.
+function reloadFromCacheAndRerender(key) {
+  switch (key) {
+    case StorageKeys.todos: todos = loadJSON(key, []); renderTodos(); break;
+    case StorageKeys.periodLogs: periodLogs = loadJSON(key, []); loadCycleScreen(); loadHistory(); break;
+    case StorageKeys.settings: settings = loadJSON(key, settings); loadPeriodSettingsUI(); loadCycleScreen(); break;
+    case StorageKeys.chat: chatHistory = loadJSON(key, []); renderChatUI(); break;
+    case StorageKeys.notes: notes = loadJSON(key, []); renderNotes(); break;
+    case StorageKeys.bbtLogs: bbtLogs = loadJSON(key, []); renderBbtChart(); renderBbtHistory(); break;
+    case StorageKeys.books: books = loadJSON(key, []); renderBooks(); break;
+    case StorageKeys.events: events = loadJSON(key, []); renderCalendarScreen(); break;
+    case StorageKeys.movies: movies = loadJSON(key, []); renderMovies(); break;
+    case StorageKeys.games: games = loadJSON(key, []); renderGames(); break;
+    case StorageKeys.expenses: expenses = loadJSON(key, []); renderExpenses(); break;
+    case StorageKeys.budgets: budgets = loadJSON(key, {}); renderExpenses(); break;
+    case StorageKeys.goals: goals = loadJSON(key, []); renderGoals(); break;
+  }
+  renderStorageSummary();
+}
+
+let todos = [];
+let periodLogs = []; // [{id, start: 'YYYY-MM-DD', end: 'YYYY-MM-DD'|null}]
+let settings = { cycleLength: 28, periodLength: 5, lutealLength: 14, autoCalculate: true };
+let chatHistory = [];
+let notes = []; // [{id, text, createdAt}]
+let bbtLogs = []; // [{id, date, temp}]
+let books = []; // [{id, title, author, status, notes, createdAt}]
+let events = [];
+let movies = [];
+let games = [];
+let expenses = [];
+let budgets = {};
+let goals = [];
 const EXPENSE_CATEGORIES = ['Food', 'Rent', 'Transport', 'Entertainment', 'Shopping', 'Bills', 'Health', 'Other'];
+let apiKeys = { gemini: '', openai: '', anthropic: '' };
+let activeProvider = null;
 
-// ---- Multi-provider API keys ----
-// Migrate a pre-existing single Gemini key (from before provider switching existed)
-// into the new per-provider key map, so nobody loses their saved key on update.
-let apiKeys = loadJSON(StorageKeys.apiKeys, null);
-if (!apiKeys) {
-  const legacyKey = loadJSON(StorageKeys.apiKey, '');
-  apiKeys = { gemini: legacyKey || '', openai: '', anthropic: '' };
-  saveJSON(StorageKeys.apiKeys, apiKeys);
+// Populate all in-memory variables from the fetched cache. Called once
+// right after login + fetchAllData(), before the app's boot/render runs.
+function hydrateFromCache() {
+  todos = loadJSON(StorageKeys.todos, []);
+  periodLogs = loadJSON(StorageKeys.periodLogs, []);
+  settings = loadJSON(StorageKeys.settings, { cycleLength: 28, periodLength: 5, lutealLength: 14, autoCalculate: true });
+  chatHistory = loadJSON(StorageKeys.chat, []);
+  notes = loadJSON(StorageKeys.notes, []);
+  bbtLogs = loadJSON(StorageKeys.bbtLogs, []);
+  books = loadJSON(StorageKeys.books, []);
+  events = loadJSON(StorageKeys.events, []);
+  movies = loadJSON(StorageKeys.movies, []);
+  games = loadJSON(StorageKeys.games, []);
+  expenses = loadJSON(StorageKeys.expenses, []);
+  budgets = loadJSON(StorageKeys.budgets, {});
+  goals = loadJSON(StorageKeys.goals, []);
+  apiKeys = loadJSON(StorageKeys.apiKeys, { gemini: '', openai: '', anthropic: '' });
+  activeProvider = loadJSON(StorageKeys.provider, apiKeys.gemini ? 'gemini' : null);
 }
-let activeProvider = loadJSON(StorageKeys.provider, apiKeys.gemini ? 'gemini' : null);
 
 function persistTodos() { saveJSON(StorageKeys.todos, todos); }
 function persistPeriodLogs() { saveJSON(StorageKeys.periodLogs, periodLogs); }
@@ -828,7 +943,9 @@ $('home-date').textContent = new Date().toLocaleDateString('en-US', { weekday: '
 // ============================================================
 // Tab navigation (compact w/ More grid, or scrollable)
 // ============================================================
-let navMode = loadJSON('ava_nav_mode', 'compact'); // 'compact' | 'scroll'
+// Nav bar layout (compact vs scrollable) is a per-device display preference,
+// not account data — kept in plain localStorage so it doesn't sync/clutter the cloud store.
+let navMode = (function() { try { return localStorage.getItem('ava_nav_mode') || 'compact'; } catch (_) { return 'compact'; } })();
 let activeScreen = 'home';
 
 function tabIconSvg(tab) {
@@ -929,7 +1046,7 @@ function updateNavToggleUI() {
 }
 $('nav-mode-toggle').onclick = () => {
   navMode = navMode === 'scroll' ? 'compact' : 'scroll';
-  saveJSON('ava_nav_mode', navMode);
+  try { localStorage.setItem('ava_nav_mode', navMode); } catch (_) {}
   updateNavToggleUI();
   renderTabBar();
 };
@@ -2103,28 +2220,27 @@ function renderGoals() {
 }
 
 // ============================================================
-// Boot
+// Boot — runs once, right after a successful login + data fetch.
 // ============================================================
-$('period-start').valueAsDate = new Date();
-renderTodos();
-renderChatUI();
-loadPeriodSettingsUI();
-loadCycleScreen();
-loadHistory();
-renderNotes();
-renderBbtChart();
-renderBbtHistory();
-renderBooks();
-renderCalendarScreen();
-renderMovies();
-renderGames();
-renderExpenses();
-$('game-platform-input').dispatchEvent(new Event('change'));
-
-// ── Storage: migrate localStorage → IndexedDB, then render summary ──
-migrateFromLocalStorage().then(() => {
+function bootApp() {
+  $('period-start').valueAsDate = new Date();
+  renderTodos();
+  renderChatUI();
+  loadPeriodSettingsUI();
+  loadCycleScreen();
+  loadHistory();
+  renderNotes();
+  renderBbtChart();
+  renderBbtHistory();
+  renderBooks();
+  renderCalendarScreen();
+  renderMovies();
+  renderGames();
+  renderExpenses();
+  $('game-platform-input').dispatchEvent(new Event('change'));
   renderStorageSummary();
-});
+  subscribeRealtime();
+}
 
 function renderStorageSummary() {
   const summary = $('storage-summary');
@@ -2146,33 +2262,16 @@ function renderStorageSummary() {
     : '<span style="color:var(--text-dim)">No data yet — start tracking!</span>';
 }
 
-// Refresh summary whenever data changes
-const _origSaveJSON = saveJSON;
-// Debounced summary refresh after any save
-let _summaryTimer;
-function saveJSON(key, value) {
-  try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
-  idbSet(key, value).catch(() => {});
-  clearTimeout(_summaryTimer);
-  _summaryTimer = setTimeout(renderStorageSummary, 500);
-}
-
 // ── Export all data as a timestamped JSON backup ──
 $('export-btn').onclick = async () => {
-  const all = await idbGetAll();
-  // Also grab from localStorage as safety net
-  Object.values(StorageKeys).forEach(k => {
-    if (!(k in all)) {
-      try { const v = localStorage.getItem(k); if (v) all[k] = JSON.parse(v); } catch (_) {}
-    }
-  });
-  const blob = new Blob([JSON.stringify({ _ava_backup: true, _version: 1, _exported: new Date().toISOString(), data: all }, null, 2)], { type: 'application/json' });
+  const all = await fetchAllData();
+  const blob = new Blob([JSON.stringify({ _ava_backup: true, _version: 2, _exported: new Date().toISOString(), data: all }, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `ava-backup-${new Date().toISOString().slice(0,10)}.json`;
   a.click();
   $('storage-status').textContent = '● EXPORTED';
-  setTimeout(() => $('storage-status').textContent = '● SAVED', 3000);
+  setTimeout(() => setSaveStatus('saved'), 3000);
 };
 
 // ── Import/restore from a backup file ──
@@ -2186,28 +2285,19 @@ $('import-backup-file').onchange = async e => {
     const parsed = JSON.parse(text);
     const data = parsed._ava_backup ? parsed.data : parsed;
     let count = 0;
-    for (const [key, value] of Object.entries(data)) {
-      await idbSet(key, value);
-      try { localStorage.setItem(key, JSON.stringify(value)); } catch (_) {}
-      count++;
-    }
-    // Reload all in-memory data
-    todos       = loadJSON(StorageKeys.todos, []);
-    periodLogs  = loadJSON(StorageKeys.periodLogs, []);
-    settings    = loadJSON(StorageKeys.settings, { cycleLength: 28, periodLength: 5, lutealLength: 14, autoCalculate: true });
-    chatHistory = loadJSON(StorageKeys.chat, []);
-    notes       = loadJSON(StorageKeys.notes, []);
-    bbtLogs     = loadJSON(StorageKeys.bbtLogs, []);
-    books       = loadJSON(StorageKeys.books, []);
-    events      = loadJSON(StorageKeys.events, []);
-    movies      = loadJSON(StorageKeys.movies, []);
-    games       = loadJSON(StorageKeys.games, []);
-    expenses    = loadJSON(StorageKeys.expenses, []);
-    budgets     = loadJSON(StorageKeys.budgets, {});
-    goals       = loadJSON(StorageKeys.goals, []);
+    const rows = Object.entries(data).map(([key, value]) => ({
+      user_id: currentUser.id, key, value, updated_at: new Date().toISOString(),
+    }));
+    const { error } = await sb.from('ava_data').upsert(rows, { onConflict: 'user_id,key' });
+    if (error) throw error;
+    count = rows.length;
+    await fetchAllData();
+    hydrateFromCache();
     // Re-render everything
     renderTodos(); renderNotes(); renderBooks(); renderMovies();
-    renderGames(); renderExpenses(); renderStorageSummary();
+    renderGames(); renderExpenses(); renderCalendarScreen();
+    loadCycleScreen(); loadHistory(); renderBbtChart(); renderBbtHistory();
+    renderChatUI(); loadPeriodSettingsUI(); renderStorageSummary();
     result.style.color = 'var(--accent)';
     result.textContent = `✓ Restored ${count} data stores successfully.`;
   } catch (err) {

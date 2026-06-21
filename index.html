@@ -104,6 +104,16 @@
   .cal-day.ovulation { border-color: var(--sec-cycle); box-shadow: 0 0 0 1px var(--sec-cycle); }
   .cal-day.today { outline: 2px solid var(--teal); outline-offset: 1px; }
   .cal-day.empty { visibility: hidden; }
+  /* Events calendar (separate from Cycle's calendar) renders much more
+     compactly on phones — fixed row height instead of aspect-ratio:1,
+     which was making each row as tall as 1/7th the screen width. */
+  #event-calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  #event-calendar-grid .cal-day { aspect-ratio: unset; height: 38px; font-size: 11px; border-radius: 6px; }
+  #event-calendar-grid .cal-day .date-num { font-weight: 600; line-height: 1; }
+  #event-calendar-grid .cal-day .fert-pct { font-size: 14px; line-height: 1; margin-top: 0; }
+  @media (min-width: 420px) {
+    #event-calendar-grid .cal-day { height: 46px; font-size: 12px; }
+  }
   .legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 14px; font-size: 10px; color: var(--text-dim); }
   .legend-item { display: flex; align-items: center; gap: 5px; }
   .legend-swatch { width: 9px; height: 9px; border-radius: 3px; flex-shrink: 0; }
@@ -388,11 +398,35 @@
 <!-- TODOS -->
 <div class="screen" id="todos-screen">
   <div class="page-header"><div class="page-eyebrow">Tasks</div><div class="page-title">To-dos</div></div>
+
+  <div class="card" style="padding:12px;">
+    <div id="todo-list-pills" style="display:flex; gap:8px; overflow-x:auto; padding-bottom:2px;"></div>
+  </div>
+
+  <div id="todo-tag-filter-row" style="display:flex; gap:6px; flex-wrap:wrap; margin:0 2px 12px;"></div>
+
   <div class="card">
     <div id="todo-list"></div>
     <div id="todo-input-row">
-      <input type="text" id="todo-input" placeholder="Add a to-do...">
+      <input type="text" id="todo-input" placeholder="Add a to-do... (#tag to add tags)">
       <button class="primary" id="todo-add">Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEW LIST MODAL -->
+<div id="new-list-modal" class="group-overlay" style="justify-content:center; align-items:center; padding:24px;">
+  <div class="card" style="width:100%; max-width:340px; margin:0;">
+    <div class="stat-label" style="margin-bottom:10px;">New list</div>
+    <input type="text" id="new-list-name" placeholder="List name (e.g. Groceries)" style="margin-bottom:10px;">
+    <div class="provider-select" style="margin-bottom:14px;">
+      <div class="provider-pill active" data-visibility="private">🔒 Private</div>
+      <div class="provider-pill" data-visibility="shared">👥 Shared</div>
+    </div>
+    <div id="new-list-shared-hint" style="display:none; font-size:11px; color:var(--text-dim); margin:-6px 0 14px; line-height:1.5;"></div>
+    <div style="display:flex; gap:8px;">
+      <button class="primary" id="new-list-cancel" style="flex:1; background:var(--surface-2); color:var(--text); border:1px solid var(--border);">Cancel</button>
+      <button class="primary" id="new-list-create" style="flex:1;">Create</button>
     </div>
   </div>
 </div>
@@ -659,6 +693,16 @@
   </div>
 
   <div class="card">
+    <div class="nav-toggle-row">
+      <div>
+        <div style="font-size:13px; font-weight:600;">Floating AVA orb</div>
+        <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">The draggable orb that opens chat from any page. Turn off to use the Chat tab instead.</div>
+      </div>
+      <div class="toggle-track" id="orb-toggle"><div class="toggle-knob"></div></div>
+    </div>
+  </div>
+
+  <div class="card">
     <div class="stat-label" style="margin-bottom:4px;">Section colors</div>
     <div style="font-size:11px; color:var(--text-dim); margin-bottom:12px; line-height:1.5;">Override any section's color independently of the theme above.</div>
     <div id="section-color-list"></div>
@@ -669,6 +713,12 @@
     <div class="stat-label" style="margin-bottom:4px;">Visible tabs</div>
     <div style="font-size:11px; color:var(--text-dim); margin-bottom:12px; line-height:1.5;">Hide anything you don't use. This only affects your account.</div>
     <div id="tab-visibility-list"></div>
+  </div>
+
+  <div class="card" id="household-card">
+    <div class="stat-label" style="margin-bottom:4px;">Household</div>
+    <div style="font-size:11px; color:var(--text-dim); margin-bottom:12px; line-height:1.5;">Link with a partner to share lists (todos, calendar). They'll need to enter your code, or you can enter theirs.</div>
+    <div id="household-content"></div>
   </div>
 
   <div class="card">
@@ -779,7 +829,7 @@ async function enterApp(session) {
   document.getElementById('app-root').style.display = '';
   await fetchAllData();
   hydrateFromCache();
-  bootApp();
+  await bootApp();
 }
 
 authClient.auth.onAuthStateChange((event, session) => {
@@ -830,7 +880,6 @@ const FINANCE_TAB = { id: 'finance', label: 'FINANCE', svg: '<circle cx="12" cy=
 const sb = authClient; // reuse the same client/session created in the auth module above
 
 const StorageKeys = {
-  todos: 'todos',
   periodLogs: 'periodLogs',
   settings: 'settings',
   chat: 'chat',
@@ -911,7 +960,6 @@ function subscribeRealtime() {
 // in-memory variable and re-render just the relevant screens.
 function reloadFromCacheAndRerender(key) {
   switch (key) {
-    case StorageKeys.todos: todos = loadJSON(key, []); renderTodos(); break;
     case StorageKeys.periodLogs: periodLogs = loadJSON(key, []); loadCycleScreen(); loadHistory(); break;
     case StorageKeys.settings: settings = loadJSON(key, settings); loadPeriodSettingsUI(); loadCycleScreen(); break;
     case StorageKeys.chat: chatHistory = loadJSON(key, []); renderChatUI(); break;
@@ -924,12 +972,11 @@ function reloadFromCacheAndRerender(key) {
     case StorageKeys.expenses: expenses = loadJSON(key, []); renderExpenses(); break;
     case StorageKeys.budgets: budgets = loadJSON(key, {}); renderExpenses(); break;
     case StorageKeys.goals: goals = loadJSON(key, []); renderGoals(); break;
-    case StorageKeys.appearance: appearance = loadJSON(key, defaultAppearance()); applyAppearance(); renderTabBar(); renderSettingsScreen(); break;
+    case StorageKeys.appearance: appearance = { ...defaultAppearance(), ...loadJSON(key, {}) }; applyAppearance(); renderTabBar(); renderSettingsScreen(); break;
   }
   renderStorageSummary();
 }
 
-let todos = [];
 let periodLogs = []; // [{id, start: 'YYYY-MM-DD', end: 'YYYY-MM-DD'|null}]
 let settings = { cycleLength: 28, periodLength: 5, lutealLength: 14, autoCalculate: true };
 let chatHistory = [];
@@ -971,7 +1018,7 @@ const SECTION_LIST = [
 const HIDEABLE_TAB_IDS = ['todos', 'notes', 'books', 'movies', 'games', 'cycle', 'calendar', 'finance'];
 
 function defaultAppearance() {
-  return { preset: 'teal', overrides: {}, hiddenTabs: [] };
+  return { preset: 'teal', overrides: {}, hiddenTabs: [], orbEnabled: true };
 }
 
 // Convert a hex color like #ff4081 to an rgba(...) string for the "dim" variant.
@@ -1004,6 +1051,9 @@ function applyAppearance() {
     root.setProperty(`--sec-${key}`, color);
     root.setProperty(`--sec-${key}-dim`, hexToRgba(color, 0.15));
   });
+
+  const orb = document.getElementById('chat-orb');
+  if (orb) orb.style.display = appearance.orbEnabled === false ? 'none' : '';
 }
 
 function persistAppearance() { saveJSON(StorageKeys.appearance, appearance); }
@@ -1017,9 +1067,19 @@ function renderSettingsScreen() {
   renderThemePresetGrid();
   renderSectionColorList();
   renderTabVisibilityList();
+  renderHouseholdCard();
+  const orbToggle = $('orb-toggle');
+  if (orbToggle) orbToggle.classList.toggle('on', appearance.orbEnabled !== false);
   const emailEl = $('settings-account-email');
   if (emailEl && currentUser) emailEl.textContent = currentUser.email || '';
 }
+
+$('orb-toggle').onclick = () => {
+  appearance.orbEnabled = appearance.orbEnabled === false ? true : false;
+  persistAppearance();
+  applyAppearance();
+  renderSettingsScreen();
+};
 
 function renderThemePresetGrid() {
   const grid = $('theme-preset-grid');
@@ -1120,7 +1180,6 @@ $('settings-logout-btn').onclick = async () => {
 // Populate all in-memory variables from the fetched cache. Called once
 // right after login + fetchAllData(), before the app's boot/render runs.
 function hydrateFromCache() {
-  todos = loadJSON(StorageKeys.todos, []);
   periodLogs = loadJSON(StorageKeys.periodLogs, []);
   settings = loadJSON(StorageKeys.settings, { cycleLength: 28, periodLength: 5, lutealLength: 14, autoCalculate: true });
   chatHistory = loadJSON(StorageKeys.chat, []);
@@ -1135,10 +1194,9 @@ function hydrateFromCache() {
   goals = loadJSON(StorageKeys.goals, []);
   apiKeys = loadJSON(StorageKeys.apiKeys, { gemini: '', openai: '', anthropic: '' });
   activeProvider = loadJSON(StorageKeys.provider, apiKeys.gemini ? 'gemini' : null);
-  appearance = loadJSON(StorageKeys.appearance, defaultAppearance());
+  appearance = { ...defaultAppearance(), ...loadJSON(StorageKeys.appearance, {}) };
 }
 
-function persistTodos() { saveJSON(StorageKeys.todos, todos); }
 function persistPeriodLogs() { saveJSON(StorageKeys.periodLogs, periodLogs); }
 function persistSettings() { saveJSON(StorageKeys.settings, settings); }
 function persistChat() { saveJSON(StorageKeys.chat, chatHistory); }
@@ -1172,6 +1230,7 @@ $('home-date').textContent = new Date().toLocaleDateString('en-US', { weekday: '
 // not account data — kept in plain localStorage so it doesn't sync/clutter the cloud store.
 let navMode = (function() { try { return localStorage.getItem('ava_nav_mode') || 'compact'; } catch (_) { return 'compact'; } })();
 let activeScreen = 'home';
+let orbReturnScreen = null; // set when the orb opens chat, so a second tap can return here
 
 function tabIconSvg(tab) {
   return `<svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${tab.svg}</svg>`;
@@ -1182,6 +1241,9 @@ function closeAllOverlays() {
 }
 
 function switchScreen(screenId) {
+  // Manual navigation (tab bar, etc.) cancels the orb's "return here" memory —
+  // only a direct second tap on the orb itself should pop back to where it was.
+  orbReturnScreen = null;
   activeScreen = screenId;
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   $(screenId + '-screen').classList.add('active');
@@ -1307,46 +1369,306 @@ updateNavToggleUI();
 // ============================================================
 // To-dos
 // ============================================================
-function renderTodos() {
-  renderTodoList();
-  renderHomeTodos();
+// ============================================================
+// Households — partner linking via invite code.
+// A household is a 2+ person group; lists can be private (yours alone)
+// or shared (visible/editable by everyone in your household).
+// ============================================================
+let myHousehold = null;       // { id, invite_code, created_by } | null
+let householdMembers = [];    // [{user_id, joined_at}, ...] for myHousehold
+
+function genInviteCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no ambiguous chars
+  let code = '';
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
 }
-function renderTodoList() {
-  const list = $('todo-list');
-  list.innerHTML = todos.length ? '' : '<div class="empty-state">No to-dos yet. Add one below.</div>';
-  todos.forEach(t => {
-    const row = document.createElement('div');
-    row.className = 'todo-item' + (t.done ? ' done' : '');
-    row.innerHTML = `<div class="todo-check">${t.done ? '✓' : ''}</div><div class="todo-text">${escapeHtml(t.text)}</div><div class="todo-del">✕</div>`;
-    row.querySelector('.todo-check').onclick = () => { t.done = !t.done; persistTodos(); renderTodos(); };
-    row.querySelector('.todo-del').onclick = () => { todos = todos.filter(x => x.id !== t.id); persistTodos(); renderTodos(); };
-    list.appendChild(row);
-  });
+
+async function fetchMyHousehold() {
+  const { data: memberRows, error: mErr } = await sb.from('household_members').select('household_id').eq('user_id', currentUser.id).limit(1);
+  if (mErr || !memberRows || !memberRows.length) { myHousehold = null; householdMembers = []; return; }
+  const householdId = memberRows[0].household_id;
+  const { data: hh } = await sb.from('households').select('*').eq('id', householdId).single();
+  myHousehold = hh || null;
+  const { data: members } = await sb.from('household_members').select('user_id, joined_at').eq('household_id', householdId);
+  householdMembers = members || [];
 }
-function renderHomeTodos() {
-  const open = todos.filter(t => !t.done).slice(0, 4);
-  const el = $('home-todos');
-  el.innerHTML = open.length ? '' : '<div class="empty-state">All caught up.</div>';
-  open.forEach(t => {
-    const row = document.createElement('div');
-    row.className = 'todo-item';
-    row.innerHTML = `<div class="todo-check"></div><div class="todo-text">${escapeHtml(t.text)}</div>`;
-    el.appendChild(row);
-  });
+
+async function createHousehold() {
+  const code = genInviteCode();
+  const { data: hh, error } = await sb.from('households').insert({ invite_code: code, created_by: currentUser.id }).select().single();
+  if (error) { alert('Could not create household: ' + error.message); return; }
+  await sb.from('household_members').insert({ household_id: hh.id, user_id: currentUser.id });
+  await fetchMyHousehold();
+  renderHouseholdCard();
 }
-$('todo-add').onclick = addTodo;
-$('todo-input').addEventListener('keydown', e => { if (e.key === 'Enter') addTodo(); });
-function addTodo() {
-  const input = $('todo-input');
-  const text = input.value.trim();
-  if (!text) return;
-  todos.unshift({ id: Date.now(), text, done: false });
-  persistTodos();
-  input.value = '';
-  renderTodos();
+
+async function joinHousehold(code) {
+  const cleanCode = code.trim().toUpperCase();
+  const { data: hh, error } = await sb.from('households').select('*').eq('invite_code', cleanCode).single();
+  if (error || !hh) { return { ok: false, message: 'No household found with that code.' }; }
+  const { error: joinErr } = await sb.from('household_members').insert({ household_id: hh.id, user_id: currentUser.id });
+  if (joinErr) { return { ok: false, message: joinErr.message.includes('duplicate') ? "You're already in this household." : joinErr.message }; }
+  await fetchMyHousehold();
+  renderHouseholdCard();
+  return { ok: true };
+}
+
+async function leaveHousehold() {
+  if (!myHousehold) return;
+  await sb.from('household_members').delete().eq('household_id', myHousehold.id).eq('user_id', currentUser.id);
+  myHousehold = null; householdMembers = [];
+  await fetchLists();
+  renderHouseholdCard();
+}
+
+function renderHouseholdCard() {
+  const el = $('household-content');
+  if (!el) return;
+  if (myHousehold) {
+    el.innerHTML = `
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+        <div>
+          <div style="font-size:11px; color:var(--text-dim);">Your invite code</div>
+          <div style="font-family:'SF Mono',monospace; font-size:20px; letter-spacing:0.1em; color:var(--accent);">${myHousehold.invite_code}</div>
+        </div>
+        <div style="font-size:11px; color:var(--text-dim); text-align:right;">${householdMembers.length} member${householdMembers.length === 1 ? '' : 's'}</div>
+      </div>
+      <button class="primary" id="leave-household-btn" style="width:100%; background:var(--surface-2); color:var(--danger); border:1px solid var(--border);">Leave household</button>
+    `;
+    $('leave-household-btn').onclick = () => {
+      if (confirm('Leave this household? Shared lists will no longer be visible to you.')) leaveHousehold();
+    };
+  } else {
+    el.innerHTML = `
+      <button class="primary" id="create-household-btn" style="width:100%; margin-bottom:10px;">Generate my invite code</button>
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="join-household-input" placeholder="Enter partner's code" style="flex:1; text-transform:uppercase;" maxlength="6">
+        <button class="primary" id="join-household-btn" style="background:var(--surface-2); color:var(--text); border:1px solid var(--border);">Join</button>
+      </div>
+      <div id="join-household-status" style="font-size:11px; margin-top:8px; min-height:14px;"></div>
+    `;
+    $('create-household-btn').onclick = createHousehold;
+    $('join-household-btn').onclick = async () => {
+      const input = $('join-household-input');
+      const status = $('join-household-status');
+      if (!input.value.trim()) return;
+      status.textContent = 'Joining…'; status.style.color = 'var(--text-dim)';
+      const result = await joinHousehold(input.value);
+      if (result.ok) { status.style.color = 'var(--accent)'; status.textContent = '✓ Joined!'; }
+      else { status.style.color = 'var(--danger)'; status.textContent = result.message; }
+    };
+  }
 }
 
 // ============================================================
+// Lists & list items — replaces the old single flat todos array.
+// Each list is either private (owner_id = you) or shared (household_id).
+// ============================================================
+let lists = [];             // [{id, kind, name, color, owner_id, household_id}, ...] — todo-kind lists
+let listItems = {};         // { [listId]: [{id, text, done, tags, created_by, completed_by}, ...] }
+let activeListId = null;    // currently selected list on the Todos screen
+let activeTagFilter = null; // tag string or null
+
+async function fetchLists() {
+  const { data, error } = await sb.from('lists').select('*').eq('kind', 'todo').order('created_at');
+  if (error) { console.error('fetchLists error:', error); lists = []; return; }
+  lists = data || [];
+  // Ensure everyone has at least one private list to start with.
+  if (!lists.some(l => l.owner_id === currentUser.id)) {
+    const { data: created } = await sb.from('lists').insert({ kind: 'todo', name: 'My To-dos', owner_id: currentUser.id }).select().single();
+    if (created) lists.unshift(created);
+  }
+  if (!activeListId || !lists.some(l => l.id === activeListId)) {
+    activeListId = (lists.find(l => l.owner_id === currentUser.id) || lists[0])?.id || null;
+  }
+  await fetchAllListItems();
+}
+
+async function fetchAllListItems() {
+  if (!lists.length) { listItems = {}; return; }
+  const ids = lists.map(l => l.id);
+  const { data, error } = await sb.from('list_items').select('*').in('list_id', ids).order('created_at', { ascending: false });
+  if (error) { console.error('fetchAllListItems error:', error); return; }
+  const grouped = {};
+  ids.forEach(id => grouped[id] = []);
+  (data || []).forEach(item => { (grouped[item.list_id] = grouped[item.list_id] || []).push(item); });
+  listItems = grouped;
+}
+
+function subscribeListsRealtime() {
+  sb.channel('lists_and_items')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'lists' }, async () => { await fetchLists(); renderTodos(); })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'list_items' }, async () => { await fetchAllListItems(); renderTodos(); })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'household_members' }, async () => { await fetchMyHousehold(); await fetchLists(); renderHouseholdCard(); renderTodos(); })
+    .subscribe();
+}
+
+function visibleListsForCurrentHousehold() {
+  // A list is visible if it's privately yours, or shared with a household you're in.
+  return lists.filter(l => l.owner_id === currentUser.id || (myHousehold && l.household_id === myHousehold.id));
+}
+
+function allTagsInUse() {
+  const set = new Set();
+  Object.values(listItems).forEach(items => items.forEach(i => (i.tags || []).forEach(t => set.add(t))));
+  return [...set].sort();
+}
+
+function renderTodos() {
+  renderTodoListPills();
+  renderTagFilterRow();
+  renderTodoList();
+  renderHomeTodos();
+}
+
+function renderTodoListPills() {
+  const row = $('todo-list-pills');
+  if (!row) return;
+  row.innerHTML = '';
+  visibleListsForCurrentHousehold().forEach(list => {
+    const isShared = !!list.household_id;
+    const pill = document.createElement('div');
+    pill.className = 'provider-pill' + (list.id === activeListId ? ' active' : '');
+    pill.style.whiteSpace = 'nowrap';
+    pill.textContent = (isShared ? '👥 ' : '🔒 ') + list.name;
+    pill.onclick = () => { activeListId = list.id; activeTagFilter = null; renderTodos(); };
+    row.appendChild(pill);
+  });
+  const addPill = document.createElement('div');
+  addPill.className = 'provider-pill';
+  addPill.textContent = '+ New list';
+  addPill.onclick = openNewListModal;
+  row.appendChild(addPill);
+}
+
+function renderTagFilterRow() {
+  const row = $('todo-tag-filter-row');
+  if (!row) return;
+  const items = listItems[activeListId] || [];
+  const tagsHere = [...new Set(items.flatMap(i => i.tags || []))].sort();
+  row.innerHTML = '';
+  if (!tagsHere.length) return;
+  const allChip = document.createElement('div');
+  allChip.className = 'provider-pill' + (!activeTagFilter ? ' active' : '');
+  allChip.style.cssText = 'padding:4px 10px; font-size:11px;';
+  allChip.textContent = 'All';
+  allChip.onclick = () => { activeTagFilter = null; renderTodos(); };
+  row.appendChild(allChip);
+  tagsHere.forEach(tag => {
+    const chip = document.createElement('div');
+    chip.className = 'provider-pill' + (activeTagFilter === tag ? ' active' : '');
+    chip.style.cssText = 'padding:4px 10px; font-size:11px;';
+    chip.textContent = '#' + tag;
+    chip.onclick = () => { activeTagFilter = activeTagFilter === tag ? null : tag; renderTodos(); };
+    row.appendChild(chip);
+  });
+}
+
+function renderTodoList() {
+  const list = $('todo-list');
+  if (!list) return;
+  const items = (listItems[activeListId] || []).filter(i => !activeTagFilter || (i.tags || []).includes(activeTagFilter));
+  list.innerHTML = items.length ? '' : '<div class="empty-state">No to-dos yet. Add one below.</div>';
+  items.forEach(t => {
+    const row = document.createElement('div');
+    row.className = 'todo-item' + (t.done ? ' done' : '');
+    const tagsHtml = (t.tags || []).map(tag => `<span style="font-size:10px; color:var(--text-dim); background:var(--surface-2); border-radius:4px; padding:1px 5px; margin-right:4px;">#${escapeHtml(tag)}</span>`).join('');
+    row.innerHTML = `<div class="todo-check">${t.done ? '✓' : ''}</div><div class="todo-text">${escapeHtml(t.text)}${tagsHtml ? `<div style="margin-top:4px;">${tagsHtml}</div>` : ''}</div><div class="todo-del">✕</div>`;
+    row.querySelector('.todo-check').onclick = () => toggleListItem(t);
+    row.querySelector('.todo-del').onclick = () => deleteListItem(t);
+    list.appendChild(row);
+  });
+}
+
+function renderHomeTodos() {
+  const el = $('home-todos');
+  if (!el) return;
+  // Home shows a quick combined view across all your visible lists.
+  const allOpen = visibleListsForCurrentHousehold().flatMap(l => (listItems[l.id] || []).filter(i => !i.done).map(i => ({ ...i, _listName: l.name })));
+  el.innerHTML = allOpen.length ? '' : '<div class="empty-state">All caught up.</div>';
+  allOpen.slice(0, 4).forEach(t => {
+    const row = document.createElement('div');
+    row.className = 'todo-item';
+    row.innerHTML = `<div class="todo-check"></div><div class="todo-text">${escapeHtml(t.text)} <span style="font-size:10px; color:var(--text-dim);">— ${escapeHtml(t._listName)}</span></div>`;
+    el.appendChild(row);
+  });
+}
+
+async function toggleListItem(item) {
+  const newDone = !item.done;
+  item.done = newDone; // optimistic
+  renderTodos();
+  await sb.from('list_items').update({ done: newDone, completed_by: newDone ? currentUser.id : null, updated_at: new Date().toISOString() }).eq('id', item.id);
+}
+
+async function deleteListItem(item) {
+  listItems[activeListId] = (listItems[activeListId] || []).filter(i => i.id !== item.id);
+  renderTodos(); // optimistic
+  await sb.from('list_items').delete().eq('id', item.id);
+}
+
+$('todo-add').onclick = addTodo;
+$('todo-input').addEventListener('keydown', e => { if (e.key === 'Enter') addTodo(); });
+async function addTodo() {
+  const input = $('todo-input');
+  const raw = input.value.trim();
+  if (!raw || !activeListId) return;
+  // Pull out #tags from the text, leave the rest as the todo text.
+  const tags = [...raw.matchAll(/#(\w+)/g)].map(m => m[1].toLowerCase());
+  const text = raw.replace(/#\w+/g, '').replace(/\s+/g, ' ').trim() || raw;
+  input.value = '';
+  const { data, error } = await sb.from('list_items').insert({
+    list_id: activeListId, text, tags, created_by: currentUser.id,
+  }).select().single();
+  if (error) { alert('Could not add item: ' + error.message); return; }
+  listItems[activeListId] = [data, ...(listItems[activeListId] || [])];
+  renderTodos();
+}
+
+// ── New list modal ──
+let newListVisibility = 'private';
+function openNewListModal() {
+  $('new-list-name').value = '';
+  newListVisibility = 'private';
+  document.querySelectorAll('#new-list-modal .provider-pill').forEach(p => p.classList.toggle('active', p.dataset.visibility === 'private'));
+  updateNewListHint();
+  $('new-list-modal').classList.add('active');
+}
+document.querySelectorAll('#new-list-modal .provider-pill').forEach(pill => {
+  pill.onclick = () => {
+    newListVisibility = pill.dataset.visibility;
+    document.querySelectorAll('#new-list-modal .provider-pill').forEach(p => p.classList.toggle('active', p === pill));
+    updateNewListHint();
+  };
+});
+function updateNewListHint() {
+  const hint = $('new-list-shared-hint');
+  if (newListVisibility === 'shared') {
+    hint.style.display = '';
+    hint.textContent = myHousehold ? 'Visible and editable by everyone in your household.' : "You'll need to link a household first (see Settings) before creating shared lists.";
+  } else {
+    hint.style.display = 'none';
+  }
+}
+$('new-list-cancel').onclick = () => $('new-list-modal').classList.remove('active');
+$('new-list-create').onclick = async () => {
+  const name = $('new-list-name').value.trim();
+  if (!name) return;
+  if (newListVisibility === 'shared' && !myHousehold) { alert('Link a household in Settings first.'); return; }
+  const payload = newListVisibility === 'shared'
+    ? { kind: 'todo', name, household_id: myHousehold.id }
+    : { kind: 'todo', name, owner_id: currentUser.id };
+  const { data, error } = await sb.from('lists').insert(payload).select().single();
+  if (error) { alert('Could not create list: ' + error.message); return; }
+  lists.push(data);
+  listItems[data.id] = [];
+  activeListId = data.id;
+  $('new-list-modal').classList.remove('active');
+  renderTodos();
+};
+
+
 // Period prediction math
 // ============================================================
 function toISODate(d) { return d.toISOString().slice(0, 10); }
@@ -2472,10 +2794,13 @@ function renderGoals() {
 // ============================================================
 // Boot — runs once, right after a successful login + data fetch.
 // ============================================================
-function bootApp() {
+async function bootApp() {
   applyAppearance();
   $('period-start').valueAsDate = new Date();
+  await fetchMyHousehold();
+  await fetchLists();
   renderTodos();
+  renderHouseholdCard();
   renderChatUI();
   loadPeriodSettingsUI();
   loadCycleScreen();
@@ -2493,6 +2818,7 @@ function bootApp() {
   renderTabBar();
   renderSettingsScreen();
   subscribeRealtime();
+  subscribeListsRealtime();
 }
 
 function renderStorageSummary() {
@@ -2502,7 +2828,7 @@ function renderStorageSummary() {
     ['Period logs', periodLogs.length],
     ['BBT readings', bbtLogs.length],
     ['Notes', notes.length],
-    ['Tasks', todos.length],
+    ['Tasks', Object.values(listItems).reduce((sum, arr) => sum + arr.length, 0)],
     ['Books', books.length],
     ['Movies', movies.length],
     ['Games', games.length],
@@ -2518,7 +2844,16 @@ function renderStorageSummary() {
 // ── Export all data as a timestamped JSON backup ──
 $('export-btn').onclick = async () => {
   const all = await fetchAllData();
-  const blob = new Blob([JSON.stringify({ _ava_backup: true, _version: 2, _exported: new Date().toISOString(), data: all }, null, 2)], { type: 'application/json' });
+  const { data: myLists } = await sb.from('lists').select('*').eq('owner_id', currentUser.id);
+  const myListIds = (myLists || []).map(l => l.id);
+  const { data: myItems } = myListIds.length
+    ? await sb.from('list_items').select('*').in('list_id', myListIds)
+    : { data: [] };
+  const blob = new Blob([JSON.stringify({
+    _ava_backup: true, _version: 3, _exported: new Date().toISOString(),
+    data: all,
+    privateLists: myLists || [], privateListItems: myItems || [],
+  }, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `ava-backup-${new Date().toISOString().slice(0,10)}.json`;
@@ -2544,6 +2879,22 @@ $('import-backup-file').onchange = async e => {
     const { error } = await sb.from('ava_data').upsert(rows, { onConflict: 'user_id,key' });
     if (error) throw error;
     count = rows.length;
+    // Restore private lists/items too, if present (v3+ backups). Shared
+    // lists are intentionally skipped — restoring those from a single
+    // person's backup could create confusing duplicates in a household.
+    if (parsed.privateLists && parsed.privateLists.length) {
+      for (const list of parsed.privateLists) {
+        const { data: newList } = await sb.from('lists').insert({ kind: list.kind, name: list.name, color: list.color, owner_id: currentUser.id }).select().single();
+        if (!newList) continue;
+        const itemsForList = (parsed.privateListItems || []).filter(i => i.list_id === list.id);
+        if (itemsForList.length) {
+          await sb.from('list_items').insert(itemsForList.map(i => ({
+            list_id: newList.id, text: i.text, done: i.done, tags: i.tags || [], created_by: currentUser.id,
+          })));
+        }
+      }
+      await fetchLists();
+    }
     await fetchAllData();
     hydrateFromCache();
     // Re-render everything
@@ -2610,10 +2961,18 @@ $('import-backup-file').onchange = async e => {
     setTimeout(() => t.remove(), 800);
   }
 
-  // Click orb → jump to chat tab
+  // Click orb → toggle into chat, or back to whatever screen you were on.
   orb.addEventListener('click', e => {
     if (dragging) return;
-    switchScreen('chat');
+    if (activeScreen === 'chat' && orbReturnScreen) {
+      const target = orbReturnScreen;
+      orbReturnScreen = null;
+      switchScreen(target);
+    } else {
+      const cameFrom = activeScreen;
+      switchScreen('chat');
+      orbReturnScreen = cameFrom === 'chat' ? null : cameFrom;
+    }
   });
 })();
 </script>
